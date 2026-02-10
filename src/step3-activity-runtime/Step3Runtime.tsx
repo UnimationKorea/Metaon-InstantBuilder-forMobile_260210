@@ -312,26 +312,25 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
     };
 
     return (
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
             {/* 헤더 */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-emerald-200">
-                            3
-                        </div>
-                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">액티비티 런타임</h2>
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-lg shadow-emerald-200 flex-shrink-0">
+                        3
                     </div>
-                    <p className="text-slate-500 font-medium ml-13">
-                        학습 액티비티를 선택하고 메타온에 배포합니다
-                    </p>
+                    <div>
+                        <h2 className="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">액티비티 런타임</h2>
+                        <p className="text-slate-400 font-medium text-[11px] sm:text-sm hidden sm:block">
+                            학습 액티비티를 선택하고 메타율에 배포합니다
+                        </p>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 sm:gap-3">
                     {onBack && (
-                        <button onClick={onBack} className="tooltip btn-secondary" data-tooltip="이전 단계로 돌아갑니다">
-                            <i className="fas fa-arrow-left mr-2"></i>
-                            이전
+                        <button onClick={onBack} className="p-2 sm:p-3 hover:bg-slate-100 rounded-xl transition-all" title="이전">
+                            <i className="fas fa-arrow-left text-slate-500"></i>
                         </button>
                     )}
 
@@ -339,32 +338,34 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
                         onClick={syncToMetaon}
                         disabled={selectedActivities.length === 0 || syncStatus === 'syncing'}
                         className={cn(
-                            'btn-primary flex items-center gap-2',
+                            'btn-primary flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-3',
                             syncStatus === 'syncing' && 'opacity-70'
                         )}
                     >
                         {syncStatus === 'syncing' ? (
                             <>
                                 <i className="fas fa-spinner fa-spin"></i>
-                                동기화 중...
+                                <span className="hidden sm:inline">동기화 중...</span>
                             </>
                         ) : syncStatus === 'synced' ? (
                             <>
                                 <i className="fas fa-check-circle"></i>
-                                동기화 완료!
+                                <span className="hidden sm:inline">동기화 완료!</span>
+                                <span className="sm:hidden">완료</span>
                             </>
                         ) : (
                             <>
                                 <i className="fas fa-cloud-upload-alt"></i>
-                                메타온 동기화
+                                <span className="hidden sm:inline">메타온 동기화</span>
+                                <span className="sm:hidden">동기화</span>
                             </>
                         )}
                     </button>
                 </div>
             </div>
 
-            {/* [변경] 계층 선택 네비게이션 - 라이트 테마 통일 */}
-            <div className="card p-4 flex flex-wrap items-center gap-4 bg-white/80 backdrop-blur-lg border-2 border-indigo-100">
+            {/* [변경] 계층 선택 네비게이션 - 모바일 2열 그리드 */}
+            <div className="card p-3 sm:p-4 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 sm:gap-4 bg-white/80 backdrop-blur-lg border-2 border-indigo-100">
                 <div className="flex-1 min-w-[100px]">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">{classificationConfig.subject}</label>
                     <select
@@ -461,39 +462,39 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
             )}
 
             {/* 세션 정보 */}
-            <div className={cn("card p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-100 transition-opacity duration-300", isLoadingPageData && "opacity-50")}>
+            <div className={cn("card p-4 sm:p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-100 transition-opacity duration-300", isLoadingPageData && "opacity-50")}>
                 {isLoadingPageData && (
                     <div className="absolute inset-0 flex items-center justify-center z-10">
                         <div className="spinner"></div>
                     </div>
                 )}
                 <div className="flex items-center justify-between relative">
-                    <div className="flex items-center gap-6">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-200">
-                            <i className="fas fa-database text-2xl text-white"></i>
+                    <div className="flex items-center gap-3 sm:gap-6">
+                        <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+                            <i className="fas fa-database text-lg sm:text-2xl text-white"></i>
                         </div>
                         <div>
-                            <h3 className="text-xl font-black text-slate-800 mb-1">세션 데이터</h3>
-                            <div className="flex items-center gap-4 text-sm text-slate-500">
+                            <h3 className="text-base sm:text-xl font-black text-slate-800 mb-0.5 sm:mb-1">세션 데이터</h3>
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-slate-500">
                                 <span><i className="fas fa-book mr-1 text-indigo-400"></i> {hierarchy.subject}</span>
                                 <span><i className="fas fa-layer-group mr-1 text-purple-400"></i> {hierarchy.level}</span>
-                                <span><i className="fas fa-folder mr-1 text-emerald-400"></i> {hierarchy.set}</span>
-                                <span><i className="fas fa-file-alt mr-1 text-amber-400"></i> {hierarchy.page}</span>
+                                <span className="hidden sm:inline"><i className="fas fa-folder mr-1 text-emerald-400"></i> {hierarchy.set}</span>
+                                <span className="hidden sm:inline"><i className="fas fa-file-alt mr-1 text-amber-400"></i> {hierarchy.page}</span>
                             </div>
                         </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-8 text-center">
+                    <div className="grid grid-cols-3 gap-4 sm:gap-8 text-center">
                         <div>
-                            <p className="text-3xl font-black text-indigo-600">{currentStacks.length}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">스택</p>
+                            <p className="text-xl sm:text-3xl font-black text-indigo-600">{currentStacks.length}</p>
+                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 sm:mt-1">스택</p>
                         </div>
                         <div>
-                            <p className="text-3xl font-black text-emerald-600">{availableData.length}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">데이터</p>
+                            <p className="text-xl sm:text-3xl font-black text-emerald-600">{availableData.length}</p>
+                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 sm:mt-1">데이터</p>
                         </div>
                         <div>
-                            <p className="text-3xl font-black text-amber-600">{selectedActivities.length}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">액티비티</p>
+                            <p className="text-xl sm:text-3xl font-black text-amber-600">{selectedActivities.length}</p>
+                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 sm:mt-1">액티비티</p>
                         </div>
                     </div>
                 </div>
@@ -707,17 +708,16 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
                 </div>
             </div>
 
-            <div className="flex justify-center items-center gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-4 pt-4">
                 <button
                     onClick={handleTempDBSave}
                     disabled={tempSyncStatus === 'syncing'}
                     className={cn(
-                        "tooltip px-8 py-5 rounded-3xl font-black text-lg flex items-center gap-3 transition-all",
+                        "px-6 sm:px-8 py-3 sm:py-5 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-lg flex items-center justify-center gap-2 sm:gap-3 transition-all",
                         tempSyncStatus === 'synced'
                             ? "bg-emerald-500 text-white shadow-emerald-200"
-                            : "bg-white text-indigo-600 border-4 border-indigo-600 shadow-xl hover:bg-indigo-50"
+                            : "bg-white text-indigo-600 border-2 sm:border-4 border-indigo-600 shadow-xl hover:bg-indigo-50"
                     )}
-                    data-tooltip="현재 작업 상태를 서버 DB에 임시 저장합니다"
                 >
                     <i className={cn("fas", tempSyncStatus === 'syncing' ? "fa-spinner fa-spin" : tempSyncStatus === 'synced' ? "fa-check-circle" : "fa-database")}></i>
                     {tempSyncStatus === 'synced' ? "임시 DB 저장됨" : "임시 DB 저장"}
@@ -726,11 +726,11 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
                 <button
                     onClick={syncToMetaon}
                     disabled={syncStatus === 'syncing'}
-                    className="tooltip bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-12 py-5 rounded-3xl font-black text-lg flex items-center gap-3 shadow-2xl shadow-emerald-200 hover:shadow-3xl hover:scale-[1.02] transition-all"
-                    data-tooltip="모든 액티비티를 메타온 플랫폼에 배포합니다"
+                    className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-6 sm:px-12 py-3 sm:py-5 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-lg flex items-center justify-center gap-2 sm:gap-3 shadow-2xl shadow-emerald-200 hover:shadow-3xl transition-all"
                 >
-                    <i className="fas fa-rocket text-xl"></i>
-                    {selectedActivities.length}개 액티비티 메타온에 배포하기
+                    <i className="fas fa-rocket text-base sm:text-xl"></i>
+                    <span className="hidden sm:inline">{selectedActivities.length}개 액티비티 메타온에 배포하기</span>
+                    <span className="sm:hidden">메타온 배포 ({selectedActivities.length})</span>
                 </button>
             </div>
         </div>

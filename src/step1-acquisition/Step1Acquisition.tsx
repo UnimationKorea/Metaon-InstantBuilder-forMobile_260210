@@ -705,25 +705,26 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
     };
 
     return (
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
             {/* 헤더 */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-amber-200">
-                            1
-                        </div>
-                        <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">원고 수집</h2>
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-lg shadow-amber-200 flex-shrink-0">
+                        1
                     </div>
-                    <p className="text-slate-500 font-medium ml-13">
-                        {inputMode === 'file' ? 'PDF 또는 이미지를 업로드하여 텍스트를 추출합니다' : '단어와 문장을 직접 입력합니다'}
-                    </p>
+                    <div>
+                        <h2 className="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">원고 수집</h2>
+                        <p className="text-slate-400 font-medium text-[11px] sm:text-sm hidden sm:block">
+                            {inputMode === 'file' ? 'PDF/이미지 업로드 → 텍스트 추출' : '단어와 문장 직접 입력'}
+                        </p>
+                    </div>
                 </div>
 
                 {(results || (inputMode === 'manual' && manualEntries.length > 0)) && (
-                    <button onClick={inputMode === 'file' ? handleProceed : handleManualProceed} className="btn-success flex items-center gap-2">
+                    <button onClick={inputMode === 'file' ? handleProceed : handleManualProceed} className="btn-success flex items-center gap-2 text-sm px-4 py-2">
                         <i className="fas fa-arrow-right"></i>
-                        다음 단계로
+                        <span className="hidden sm:inline">다음 단계로</span>
+                        <span className="sm:hidden">다음</span>
                     </button>
                 )}
             </div>
@@ -853,7 +854,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                     {/* 삭제 버튼 */}
                                     <button
                                         onClick={() => deleteManualEntry(entry.id)}
-                                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-all flex items-center justify-center"
+                                        className="absolute top-3 right-3 w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-700 transition-all flex items-center justify-center"
                                     >
                                         <i className="fas fa-times"></i>
                                     </button>
@@ -1182,7 +1183,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
 
                     {/* 원본 블록 탭 */}
                     {activeTab === 'raw' && (
-                        <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                             {results.results.map((item) => {
                                 const langInfo = getLanguageLabel(item.language);
                                 return (
@@ -1223,7 +1224,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
 
                     {/* 페이지 요약 탭 */}
                     {activeTab === 'summary' && (
-                        <div className="space-y-6 max-h-[600px] overflow-y-auto">
+                        <div className="space-y-6 max-h-[60vh] overflow-y-auto">
                             {/* 탭 설명 */}
                             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
                                 <div className="flex items-center gap-3 mb-2">
@@ -1320,7 +1321,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
 
                     {/* 고유 세트 탭 */}
                     {activeTab === 'set' && (
-                        <div className="space-y-6 max-h-[600px] overflow-y-auto">
+                        <div className="space-y-6 max-h-[60vh] overflow-y-auto">
                             {/* 탭 설명 */}
                             <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
                                 <div className="flex items-center gap-3 mb-2">
@@ -1373,7 +1374,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                             />
                                             <button
                                                 onClick={() => deleteAggregatedItem('extractedVocabulary', i)}
-                                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
+                                                className="absolute -top-2 -right-2 w-7 h-7 sm:w-6 sm:h-6 bg-red-500 text-white rounded-full text-[10px] shadow-lg z-10"
                                             >
                                                 <i className="fas fa-times"></i>
                                             </button>

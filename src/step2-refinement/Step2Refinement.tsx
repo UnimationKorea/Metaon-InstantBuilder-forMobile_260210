@@ -795,73 +795,73 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
         hierarchy.subject === 'japanese' ? '후리가나' : null;
 
     return (
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
             {/* 헤더 */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-200">
-                            2
-                        </div>
-                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">데이터 편집</h2>
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-lg shadow-blue-200 flex-shrink-0">
+                        2
                     </div>
-                    <p className="text-slate-500 font-medium ml-13">
-                        추출된 데이터를 검수하고 AI로 보강합니다
-                    </p>
+                    <div>
+                        <h2 className="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">데이터 편집</h2>
+                        <p className="text-slate-400 font-medium text-[11px] sm:text-sm hidden sm:block">
+                            추출된 데이터를 검수하고 AI로 보강합니다
+                        </p>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 sm:gap-3">
                     {onBack && (
-                        <button onClick={onBack} className="btn-secondary">
-                            <i className="fas fa-arrow-left mr-2"></i>
-                            이전
+                        <button onClick={onBack} className="p-2 sm:p-3 hover:bg-slate-100 rounded-xl transition-all" title="이전">
+                            <i className="fas fa-arrow-left text-slate-500"></i>
                         </button>
                     )}
-                    <button onClick={exportJSON} className="p-3 hover:bg-slate-100 rounded-xl transition-all" title="JSON 다운로드">
+                    <button onClick={exportJSON} className="p-2 sm:p-3 hover:bg-slate-100 rounded-xl transition-all" title="JSON">
                         <i className="fas fa-file-code text-slate-500"></i>
                     </button>
-                    <button onClick={exportCSV} className="p-3 hover:bg-slate-100 rounded-xl transition-all" title="CSV 다운로드">
+                    <button onClick={exportCSV} className="p-2 sm:p-3 hover:bg-slate-100 rounded-xl transition-all" title="CSV">
                         <i className="fas fa-file-csv text-slate-500"></i>
                     </button>
                     <button
                         onClick={handleTempDBSave}
                         disabled={isSyncing}
                         className={cn(
-                            "flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-lg",
+                            "flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all shadow-lg",
                             isSyncing
                                 ? "bg-slate-100 text-slate-400 cursor-wait"
-                                : "bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98]"
+                                : "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]"
                         )}
-                        title="Supabase DB에 현재 상태 저장"
+                        title="DB 저장"
                     >
                         <i className={cn("fas", isSyncing ? "fa-spinner fa-spin" : "fa-database")}></i>
-                        {isSyncing ? "저장 중..." : "DB 저장"}
+                        <span className="hidden sm:inline">{isSyncing ? "저장 중..." : "DB 저장"}</span>
                     </button>
-                    <button onClick={handleProceed} className="btn-success flex items-center gap-2">
+                    <button onClick={handleProceed} className="btn-success flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-3">
                         <i className="fas fa-check"></i>
-                        검증 완료 & 다음
+                        <span className="hidden sm:inline">검증 완료 & 다음</span>
+                        <span className="sm:hidden">다음</span>
                     </button>
                 </div>
             </div>
 
             {/* 뷰 모드 탭 */}
-            <div className="flex bg-slate-100 p-1 rounded-2xl w-fit">
+            <div className="flex bg-slate-100 p-1 rounded-xl sm:rounded-2xl w-full sm:w-fit">
                 <button
                     onClick={() => setViewMode('ASSET_POOL')}
                     className={cn(
-                        'px-8 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2',
+                        'flex-1 sm:flex-initial px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2',
                         viewMode === 'ASSET_POOL'
                             ? 'bg-emerald-600 text-white shadow-md'
                             : 'text-slate-500 hover:text-slate-700'
                     )}
                 >
                     <i className="fas fa-database"></i>
-                    ASSET POOL ({commonResources.length})
+                    ASSET ({commonResources.length})
                 </button>
                 <button
                     onClick={() => setViewMode('PAGE_EDITOR')}
                     className={cn(
-                        'px-8 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2',
+                        'flex-1 sm:flex-initial px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2',
                         viewMode === 'PAGE_EDITOR'
                             ? 'bg-indigo-600 text-white shadow-md'
                             : 'text-slate-500 hover:text-slate-700'
@@ -932,7 +932,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
             {viewMode === 'PAGE_EDITOR' && (
                 <div className="space-y-6">
                     {/* 계층 선택 (읽기 전용) */}
-                    <div className="card p-6 flex flex-wrap items-center gap-6 bg-slate-900 text-white">
+                    <div className="card p-4 sm:p-6 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 sm:gap-6 bg-slate-900 text-white">
                         <div className="flex-1">
                             <label className="text-[10px] font-black text-white/50 uppercase tracking-wider block mb-2">{classificationConfig.subject}</label>
                             <div className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3 text-sm font-bold text-white/90 flex items-center justify-between">

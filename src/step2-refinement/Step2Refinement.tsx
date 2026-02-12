@@ -20,9 +20,7 @@ import {
     DEFAULT_CLASSIFICATION,
     generateId,
     getTimestamp,
-    parseCSV,
     validateSegmentMatch,
-    detectDataUnit,
     cn,
     stateManager,
     savePageContent,
@@ -336,7 +334,6 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
         }
     }, [workingSession?.sessionId]); // sessionId 변경 시에만 실행
 
-    const csvInputRef = useRef<HTMLInputElement>(null);
 
     // 현재 Set 키
     const setKey = useMemo(() =>
@@ -367,53 +364,6 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
 
     // [Step 2에서는 계층 변경 불가 - Step 3에서만 가능]
     // handleHierarchyChange 함수 제거됨 (읽기 전용 UI로 변경)
-
-    // CSV 임포트
-    const handleImportCSV = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const content = event.target?.result as string;
-            const rows = parseCSV(content);
-
-            if (rows.length < 2) {
-                alert('데이터가 없거나 잘못된 형식의 CSV 파일입니다.');
-                return;
-            }
-
-            const headers = rows[0].map(h => h.toLowerCase());
-            const textIdx = headers.indexOf('text');
-            const pinyinIdx = headers.indexOf('pinyin');
-            const transIdx = headers.indexOf('translation');
-
-            if (textIdx === -1 || transIdx === -1) {
-                alert("CSV 파일에 'text'와 'translation' 컬럼이 필요합니다.");
-                return;
-            }
-
-            const newResources: ResourceData[] = rows.slice(1)
-                .map(row => ({
-                    id: generateId(),
-                    text: row[textIdx] || '',
-                    subText: pinyinIdx !== -1 ? row[pinyinIdx] : '',
-                    translation: row[transIdx] || '',
-                    dataUnit: detectDataUnit(row[textIdx] || ''),
-                    isDirectInput: true
-                }))
-                .filter(r => r.text !== '');
-
-            setGlobalResources(prev => ({
-                ...prev,
-                [setKey]: [...(prev[setKey] || []), ...newResources]
-            }));
-
-            alert(`${newResources.length}개의 리소스가 임포트되었습니다.`);
-            if (csvInputRef.current) csvInputRef.current.value = '';
-        };
-        reader.readAsText(file, 'UTF-8');
-    }, [setKey]);
 
     // 리소스 CRUD
     const addCommonResource = useCallback(() => {
@@ -772,114 +722,37 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
         }
     };
 
-    // JSON 다운로드
-    const exportJSON = () => {
-        const data = { exportedAt: getTimestamp(), hierarchy, globalResources, pageStacks };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `edu_architect_${setKey}_P${hierarchy.page}.json`;
-        link.click();
-    };
-
-    // CSV 다운로드
-    const exportCSV = () => {
-        const isAssetPool = viewMode === 'ASSET_POOL';
-        const labels = classificationConfig || DEFAULT_CLASSIFICATION;
-
-        const headers = isAssetPool
-            ? ['ID', 'Unit', 'Text', 'SubText', 'Translation']
-            : [labels.subject || 'Subject', labels.label1, labels.label2, labels.label3, 'Stack_Idx', 'Activity', 'Unit', 'Text', 'SubText', 'Translation'];
-
-        const rows: string[][] = [];
-        if (isAssetPool) {
-            commonResources.forEach((res, idx) => {
-                rows.push([String(idx + 1), res.dataUnit.toUpperCase(), `"${res.text}"`, `"${res.subText || ''}"`, `"${res.translation}"`]);
-            });
-        } else {
-            pageStacks.forEach((stack, sIdx) => {
-                stack.items.forEach(item => {
-                    rows.push([
-                        hierarchy.subject,
-                        hierarchy.level,
-                        hierarchy.set,
-                        hierarchy.page,
-                        String(sIdx + 1),
-                        stack.activityType,
-                        item.dataUnit.toUpperCase(),
-                        `"${item.text}"`,
-                        `"${item.subText || ''}"`,
-                        `"${item.translation}"`
-                    ]);
-                });
-            });
-        }
-
-        if (rows.length === 0) {
-            alert(isAssetPool ? '내보낼 어셋 데이터가 없습니다.' : '내보낼 페이지 데이터가 없습니다.');
-            return;
-        }
-
-        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = isAssetPool ? `edu_asset_pool_${setKey}.csv` : `edu_page_data_${setKey}_P${hierarchy.page}.csv`;
-        link.click();
-    };
 
     const subLabel = hierarchy.subject === 'chinese' ? '병음' :
         hierarchy.subject === 'japanese' ? '후리가나' : null;
 
     return (
         <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
-            {/* 헤더 */}
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-lg shadow-blue-200 flex-shrink-0">
-                        2
-                    </div>
-                    <div>
-                        <h2 className="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">데이터 편집</h2>
-                        <p className="text-slate-400 font-medium text-[11px] sm:text-sm hidden sm:block">
-                            추출된 데이터를 검수하고 AI로 보강합니다
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-1 sm:gap-3">
-                    {onBack && (
-                        <button onClick={onBack} className="p-2 sm:p-3 hover:bg-slate-100 rounded-xl transition-all" title="이전">
-                            <i className="fas fa-arrow-left text-slate-500"></i>
-                        </button>
+            {/* 헤더 - 액션 버튼 */}
+            <div className="flex items-center justify-end gap-1 sm:gap-3">
+                {onBack && (
+                    <button onClick={onBack} className="p-2 sm:p-3 hover:bg-slate-100 rounded-xl transition-all" title="이전">
+                        <i className="fas fa-arrow-left text-slate-500"></i>
+                    </button>
+                )}
+                <button
+                    onClick={handleTempDBSave}
+                    disabled={isSyncing}
+                    className={cn(
+                        "flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all shadow-lg",
+                        isSyncing
+                            ? "bg-slate-100 text-slate-400 cursor-wait"
+                            : "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]"
                     )}
-                    <button onClick={exportJSON} className="p-2 sm:p-3 hover:bg-slate-100 rounded-xl transition-all" title="JSON">
-                        <i className="fas fa-file-code text-slate-500"></i>
-                    </button>
-                    <button onClick={exportCSV} className="p-2 sm:p-3 hover:bg-slate-100 rounded-xl transition-all" title="CSV">
-                        <i className="fas fa-file-csv text-slate-500"></i>
-                    </button>
-                    <button
-                        onClick={handleTempDBSave}
-                        disabled={isSyncing}
-                        className={cn(
-                            "flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all shadow-lg",
-                            isSyncing
-                                ? "bg-slate-100 text-slate-400 cursor-wait"
-                                : "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]"
-                        )}
-                        title="DB 저장"
-                    >
-                        <i className={cn("fas", isSyncing ? "fa-spinner fa-spin" : "fa-database")}></i>
-                        <span className="hidden sm:inline">{isSyncing ? "저장 중..." : "DB 저장"}</span>
-                    </button>
-                    <button onClick={handleProceed} className="btn-success flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-3">
-                        <i className="fas fa-check"></i>
-                        <span className="hidden sm:inline">검증 완료 & 다음</span>
-                        <span className="sm:hidden">다음</span>
-                    </button>
-                </div>
+                    title="저장"
+                >
+                    <i className={cn("fas", isSyncing ? "fa-spinner fa-spin" : "fa-database")}></i>
+                    {isSyncing ? "저장 중..." : "저장"}
+                </button>
+                <button onClick={handleProceed} className="btn-success flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-3">
+                    <i className="fas fa-check"></i>
+                    다음
+                </button>
             </div>
 
             {/* 뷰 모드 탭 */}
@@ -921,14 +794,6 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                             </p>
                         </div>
                         <div className="flex gap-3">
-                            <input type="file" ref={csvInputRef} className="hidden" accept=".csv" onChange={handleImportCSV} />
-                            <button
-                                onClick={() => csvInputRef.current?.click()}
-                                className="btn-secondary flex items-center gap-2"
-                            >
-                                <i className="fas fa-file-upload"></i>
-                                CSV 임포트
-                            </button>
                             <button onClick={addCommonResource} className="btn-success flex items-center gap-2">
                                 <i className="fas fa-plus"></i>
                                 새 어셋
@@ -942,7 +807,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                 <i className="fas fa-database text-4xl text-slate-300"></i>
                             </div>
                             <p className="text-slate-400 font-bold">어셋 풀이 비어있습니다</p>
-                            <p className="text-slate-300 text-sm mt-1">CSV를 임포트하거나 새 어셋을 추가하세요</p>
+                            <p className="text-slate-300 text-sm mt-1">새 어셋을 추가하세요</p>
                         </div>
                     ) : (
                         <div className="space-y-4">

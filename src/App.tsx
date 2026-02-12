@@ -48,57 +48,92 @@ const CategoryBar: React.FC<CategoryBarProps> = ({ hierarchy, onHierarchyChange,
         load();
     }, []);
 
-    // 고유 옵션 추출
-    const subjects = [...new Set(storageMap.map(d => d.subject))];
-    const levels = [...new Set(storageMap.filter(d => !hierarchy?.subject || d.subject === hierarchy.subject).map(d => d.level))];
-    const sets = [...new Set(storageMap.filter(d =>
-        (!hierarchy?.subject || d.subject === hierarchy.subject) &&
-        (!hierarchy?.level || d.level === hierarchy.level)
-    ).map(d => d.set_num))];
-    const pages = [...new Set(storageMap.filter(d =>
-        (!hierarchy?.subject || d.subject === hierarchy.subject) &&
-        (!hierarchy?.level || d.level === hierarchy.level) &&
-        (!hierarchy?.set || d.set_num === hierarchy.set)
-    ).map(d => d.page_num))];
+    // classificationConfig 기반 전체 옵션 생성 (Step3와 동일 방식)
+    const subjectOptions = ['Hanja', 'Chinese', 'Japanese', 'English', 'Korean']
+        .slice(0, classificationConfig.subjectCount || 5);
 
     const handleChange = (field: keyof PageHierarchy, value: string) => {
-        const current = hierarchy || { subject: '', level: '', set: '', page: '' };
+        const current = hierarchy || { subject: subjectOptions[0] || '', level: '1', set: '1', page: '1' };
         const updated = { ...current, [field]: value };
-        // 상위 변경 시 하위 초기화
-        if (field === 'subject') { updated.level = ''; updated.set = ''; updated.page = ''; }
-        if (field === 'level') { updated.set = ''; updated.page = ''; }
-        if (field === 'set') { updated.page = ''; }
         onHierarchyChange(updated);
     };
 
-    const selectors = [
-        { label: classificationConfig.subject || 'Subject', field: 'subject' as const, options: subjects, value: hierarchy?.subject || '' },
-        { label: classificationConfig.label1 || 'Package', field: 'level' as const, options: levels, value: hierarchy?.level || '' },
-        { label: classificationConfig.label2 || 'Book', field: 'set' as const, options: sets, value: hierarchy?.set || '' },
-        { label: classificationConfig.label3 || 'Page', field: 'page' as const, options: pages, value: hierarchy?.page || '' },
-    ];
+    // 현재 hierarchy 값 (기본값 포함)
+    const h = hierarchy || { subject: subjectOptions[0] || '', level: '1', set: '1', page: '1' };
 
     return (
         <div className="bg-white border-b border-slate-200 px-4 py-3">
-            <div className="grid grid-cols-4 gap-2">
-                {selectors.map(sel => (
-                    <div key={sel.field}>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                            {sel.label}
-                        </label>
-                        <select
-                            value={sel.value}
-                            onChange={e => handleChange(sel.field, e.target.value)}
-                            disabled={loading}
-                            className="w-full h-10 px-2 text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg appearance-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
-                        >
-                            <option value="">선택</option>
-                            {sel.options.sort().map(opt => (
-                                <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                        </select>
-                    </div>
-                ))}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {/* Subject */}
+                <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        {classificationConfig.subject || 'Subject'}
+                    </label>
+                    <select
+                        value={h.subject}
+                        onChange={e => handleChange('subject', e.target.value)}
+                        disabled={loading}
+                        className="w-full h-10 px-2 text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
+                    >
+                        {subjectOptions.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Level / Package */}
+                <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        {classificationConfig.label1 || 'Package'}
+                    </label>
+                    <select
+                        value={h.level}
+                        onChange={e => handleChange('level', e.target.value)}
+                        disabled={loading}
+                        className="w-full h-10 px-2 text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
+                    >
+                        {Array.from({ length: classificationConfig.label1Count || 1 }, (_, i) => String(i + 1)).map(l => {
+                            const exists = storageMap.some(m => m.subject === h.subject && m.level === l);
+                            return <option key={l} value={l} style={{ color: exists ? '#ef4444' : 'inherit' }}>{l}{exists ? ' (data)' : ''}</option>;
+                        })}
+                    </select>
+                </div>
+
+                {/* Set / Book */}
+                <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        {classificationConfig.label2 || 'Book'}
+                    </label>
+                    <select
+                        value={h.set}
+                        onChange={e => handleChange('set', e.target.value)}
+                        disabled={loading}
+                        className="w-full h-10 px-2 text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
+                    >
+                        {Array.from({ length: classificationConfig.label2Count || 1 }, (_, i) => String(i + 1)).map(sn => {
+                            const exists = storageMap.some(m => m.subject === h.subject && m.level === h.level && m.set_num === sn);
+                            return <option key={sn} value={sn} style={{ color: exists ? '#ef4444' : 'inherit' }}>{sn}{exists ? ' (data)' : ''}</option>;
+                        })}
+                    </select>
+                </div>
+
+                {/* Page */}
+                <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        {classificationConfig.label3 || 'Page'}
+                    </label>
+                    <select
+                        value={h.page}
+                        onChange={e => handleChange('page', e.target.value)}
+                        disabled={loading}
+                        className="w-full h-10 px-2 text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
+                    >
+                        {Array.from({ length: classificationConfig.label3Count || 1 }, (_, i) => String(i + 1)).map(pn => {
+                            const exists = storageMap.some(m => m.subject === h.subject && m.level === h.level && m.set_num === h.set && m.page_num === pn);
+                            return <option key={pn} value={pn} style={{ color: exists ? '#ef4444' : 'inherit', fontWeight: exists ? 'bold' : 'normal' }}>{pn}{exists ? ' ●' : ''}</option>;
+                        })}
+                    </select>
+                </div>
             </div>
         </div>
     );
@@ -132,6 +167,9 @@ const App: React.FC = () => {
 
     // Step1 완료 여부 (세션 내)
     const [step1Completed, setStep1Completed] = useState(false);
+
+    // Step2 미저장 편집 여부
+    const [isStep2Dirty, setIsStep2Dirty] = useState(false);
 
     // 설정 모달
     const [showSettings, setShowSettings] = useState(false);
@@ -175,7 +213,7 @@ const App: React.FC = () => {
         return () => unsubscribe();
     }, []);
 
-    // 카테고리 변경 시 데이터 존재 여부 확인
+    // 카테고리 변경 시 데이터 존재 여부 확인 + step2/step3에서 자동 데이터 로드
     useEffect(() => {
         const checkPageData = async () => {
             if (!hierarchy?.subject || !hierarchy?.level || !hierarchy?.set || !hierarchy?.page) {
@@ -187,7 +225,43 @@ const App: React.FC = () => {
                 const { data } = await fetchPageContent(
                     hierarchy.subject, hierarchy.level, hierarchy.set, hierarchy.page
                 );
-                setPageDataExists(!!(data && data.content_data));
+                const exists = !!(data && data.content_data);
+                setPageDataExists(exists);
+
+                // Step2 또는 Step3 뷰에서 카테고리 변경 시: DB 데이터 자동 로드하여 step2Data 갱신
+                if (currentView === 'step2' || currentView === 'step3') {
+                    if (exists) {
+                        const contentData = data.content_data;
+                        const setPageKey = `${hierarchy.subject}-${hierarchy.level}-${hierarchy.set}-${hierarchy.page}`;
+                        const setKey = `${hierarchy.subject}-${hierarchy.level}-${hierarchy.set}`;
+                        const session: Step2Session = {
+                            sessionId: `session-${Date.now()}`,
+                            timestamp: new Date().toISOString(),
+                            subject: hierarchy.subject as any,
+                            hierarchy,
+                            stacks: { [setPageKey]: contentData.stacks || [] },
+                            resources: { [setKey]: contentData.resources || [] },
+                            config: { viewMode: 'PAGE_EDITOR', hierarchy },
+                            validationStatus: { isValid: true, errors: [], warnings: [] }
+                        };
+                        setStep2Data(session);
+                        stateManager.setStep2Data(session);
+                    } else {
+                        // 데이터 없는 페이지로 변경 시 → 빈 세션으로 갱신 (hierarchy만 갱신)
+                        const emptySession: Step2Session = {
+                            sessionId: `session-${Date.now()}`,
+                            timestamp: new Date().toISOString(),
+                            subject: hierarchy.subject as any,
+                            hierarchy,
+                            stacks: {},
+                            resources: {},
+                            config: { viewMode: 'ASSET_POOL', hierarchy },
+                            validationStatus: { isValid: true, errors: [], warnings: [] }
+                        };
+                        setStep2Data(emptySession);
+                        stateManager.setStep2Data(emptySession);
+                    }
+                }
             } catch {
                 setPageDataExists(null);
             }
@@ -196,7 +270,7 @@ const App: React.FC = () => {
         checkPageData();
         // Step1 완료 상태 초기화
         setStep1Completed(false);
-    }, [hierarchy?.subject, hierarchy?.level, hierarchy?.set, hierarchy?.page]);
+    }, [hierarchy?.subject, hierarchy?.level, hierarchy?.set, hierarchy?.page, currentView]);
 
     // hierarchy를 전역에 동기화
     const handleHierarchyChange = useCallback((h: PageHierarchy) => {
@@ -324,10 +398,23 @@ const App: React.FC = () => {
         }
     }, [isCategorySelected, hierarchy, isStep1Enabled, isStep2Enabled, isStep3Enabled, pageDataExists, navigate]);
 
-    // 뒤로가기 (스텝 → 홈)
+    // 뒤로가기 (스텝 → 홈) + 경고창
     const handleGoHome = useCallback(() => {
+        if (currentView === 'step1' && step1Data) {
+            // Step1: 데이터가 있으면 경고
+            if (!window.confirm('이동하시면 수집된 모든 데이터가 사라집니다.\n\n삭제후 이동하시겠습니까?')) {
+                return; // 취소
+            }
+            setStep1Data(null);
+        } else if (currentView === 'step2' && isStep2Dirty) {
+            // Step2: 미저장 상태면 경고
+            if (!window.confirm('이동하시면 편집된 모든 데이터가 사라집니다.\n(저장을 원하시면 저장버튼 누르신후 이동하세요)\n\n삭제후 이동하시겠습니까?')) {
+                return; // 취소
+            }
+            setIsStep2Dirty(false);
+        }
         navigate('/');
-    }, [navigate]);
+    }, [currentView, step1Data, isStep2Dirty, navigate]);
 
     // ===== 렌더링 =====
     return (
@@ -367,6 +454,16 @@ const App: React.FC = () => {
 
                     {/* 우측 액션 */}
                     <div className="flex items-center gap-1">
+                        {/* Step1 다음 버튼 (상단 우측으로 이동) */}
+                        {currentView === 'step1' && step1Data && (
+                            <button
+                                onClick={() => handleStep1Complete(step1Data)}
+                                className="flex items-center gap-1 text-sm px-3 py-2 rounded-lg bg-green-500 text-white font-bold hover:bg-green-600 transition-all shadow-sm"
+                            >
+                                <span>→</span>
+                                <span>다음</span>
+                            </button>
+                        )}
                         {authState.isAuthenticated && (
                             <button
                                 onClick={() => {
@@ -434,6 +531,7 @@ const App: React.FC = () => {
                             engineModel={engineModel}
                             geminiApiKey={geminiApiKey}
                             classificationConfig={classificationConfig}
+                            onDirtyChange={setIsStep2Dirty}
                         />
                     } />
 
@@ -443,34 +541,6 @@ const App: React.FC = () => {
                             sessionData={step2Data}
                             onComplete={handleStep3Complete}
                             onBack={handleGoHome}
-                            onNavigateToStep1={(h) => {
-                                stateManager.setHierarchy(h);
-                                stateManager.clearStepData(1);
-                                setStep1Data(null);
-                                navigate('/step1');
-                            }}
-                            onNavigateToStep2={async (h) => {
-                                stateManager.setHierarchy(h);
-                                const { data } = await fetchPageContent(h.subject, h.level, h.set, h.page);
-                                if (data && data.content_data) {
-                                    const spk = `${h.subject}-${h.level}-${h.set}-${h.page}`;
-                                    const sk = `${h.subject}-${h.level}-${h.set}`;
-                                    const session: Step2Session = {
-                                        sessionId: `session-${Date.now()}`,
-                                        timestamp: new Date().toISOString(),
-                                        subject: h.subject as any,
-                                        hierarchy: h,
-                                        stacks: { [spk]: data.content_data.stacks || [] },
-                                        resources: { [sk]: data.content_data.resources || [] },
-                                        config: { viewMode: 'PAGE_EDITOR', hierarchy: h },
-                                        validationStatus: { isValid: true, errors: [], warnings: [] }
-                                    };
-                                    setStep2Data(session);
-                                    stateManager.setStep2Data(session);
-                                }
-                                navigate('/step2');
-                            }}
-                            classificationConfig={classificationConfig}
                         />
                     } />
                 </Routes>

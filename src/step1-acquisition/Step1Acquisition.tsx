@@ -64,17 +64,69 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
 
     // 직접 입력 관련
     const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
+    const [manualSubTab, setManualSubTab] = useState<'word' | 'sentence'>('word');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const dropZoneRef = useRef<HTMLDivElement>(null);
 
-    // 상위 컴포넌트로 데이터 동기화
+    // 상위 컴포넌트로 데이터 동기화 (OCR 결과)
     useEffect(() => {
         if (results) {
             onUpdate?.(results);
         }
     }, [results, onUpdate]);
+
+    // 직접 입력 데이터 → 상위 컴포넌트로 자동 동기화
+    useEffect(() => {
+        if (inputMode === 'manual' && manualEntries.length > 0) {
+            const output: Step1Output = {
+                sessionId: generateId(),
+                timestamp: getTimestamp(),
+                sourceFile: { name: 'manual-input', type: 'text/plain', size: 0 },
+                results: manualEntries.map(entry => ({
+                    id: entry.id,
+                    original: entry.text,
+                    reading: entry.reading,
+                    translation: entry.translation,
+                    type: entry.type,
+                    confidence: 1.0,
+                    language: 'zh' as Language,
+                    boundingBox: undefined,
+                    pageIndex: 0,
+                    imageUrl: entry.imageUrl,
+                    audioUrl: entry.audioUrl
+                })),
+                pageSummaries: [{
+                    page: 0,
+                    topic: '직접 입력한 학습 자료',
+                    learningGoal: '입력한 단어와 문장 학습',
+                    keyPoints: manualEntries.map(e => e.text)
+                }],
+                aggregatedSet: {
+                    extractedVocabulary: manualEntries.filter(e => e.type === 'word').map(e => ({
+                        text: e.text, pronunciation: e.reading, translation: e.translation,
+                        imageUrl: e.imageUrl, audioUrl: e.audioUrl
+                    })),
+                    extractedSentences: manualEntries.filter(e => e.type === 'sentence').map(e => ({
+                        text: e.text, pronunciation: e.reading, translation: e.translation,
+                        imageUrl: e.imageUrl, audioUrl: e.audioUrl
+                    })),
+                    relatedVocabulary: [],
+                    relatedSentences: []
+                },
+                metadata: {
+                    totalBlocks: manualEntries.length,
+                    pageCount: 1,
+                    languages: ['zh'] as Language[],
+                    processingTime: 0
+                }
+            };
+            onUpdate?.(output);
+        } else if (inputMode === 'manual' && manualEntries.length === 0) {
+            onUpdate?.(null as any);
+        }
+    }, [manualEntries, inputMode]);
 
     // 파일 유효성 검사
     const validateFile = (file: File): boolean => {
@@ -553,65 +605,6 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
         }
     };
 
-    // 직접 입력 - 다음 단계로 진행
-    const handleManualProceed = () => {
-        if (manualEntries.length === 0) return;
-
-        // 직접 입력 데이터를 Step1Output 형식으로 변환
-        const output: Step1Output = {
-            sessionId: generateId(),
-            timestamp: getTimestamp(),
-            sourceFile: {
-                name: 'manual-input',
-                type: 'text/plain',
-                size: 0
-            },
-            results: manualEntries.map(entry => ({
-                id: entry.id,
-                original: entry.text,
-                reading: entry.reading,
-                translation: entry.translation,
-                type: entry.type,
-                confidence: 1.0,
-                language: 'zh' as Language,
-                boundingBox: undefined,
-                pageIndex: 0,
-                imageUrl: entry.imageUrl,
-                audioUrl: entry.audioUrl
-            })),
-            pageSummaries: [{
-                page: 0,
-                topic: '직접 입력한 학습 자료',
-                learningGoal: '입력한 단어와 문장 학습',
-                keyPoints: manualEntries.map(e => e.text)
-            }],
-            aggregatedSet: {
-                extractedVocabulary: manualEntries.filter(e => e.type === 'word').map(e => ({
-                    text: e.text,
-                    pronunciation: e.reading,
-                    translation: e.translation,
-                    imageUrl: e.imageUrl,
-                    audioUrl: e.audioUrl
-                })),
-                extractedSentences: manualEntries.filter(e => e.type === 'sentence').map(e => ({
-                    text: e.text,
-                    pronunciation: e.reading,
-                    translation: e.translation,
-                    imageUrl: e.imageUrl,
-                    audioUrl: e.audioUrl
-                })),
-                relatedVocabulary: [],
-                relatedSentences: []
-            },
-            metadata: {
-                totalBlocks: manualEntries.length,
-                pageCount: 1,
-                languages: ['zh'] as Language[],
-                processingTime: 0
-            }
-        };
-        onComplete(output);
-    };
 
     // 임시 DB 동기화 (Supabase edu_page_data 연동)
     const handleTempDBSync = async () => {
@@ -688,10 +681,12 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
         setResults({ ...results, aggregatedSet: newSet });
     };
 
-    // 직접 입력 - 항목 삭제
+    // 직접 입력 - 항목 삭제 (경고창 포함)
     const deleteManualEntry = (id: string) => {
+        if (!window.confirm('Sure to delete?')) return;
         setManualEntries(manualEntries.filter(e => e.id !== id));
     };
+
 
     // 언어 라벨
     const getLanguageLabel = (lang: string) => {
@@ -706,41 +701,18 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
 
     return (
         <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
-            {/* 헤더 */}
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-lg shadow-amber-200 flex-shrink-0">
-                        1
-                    </div>
-                    <div>
-                        <h2 className="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">원고 수집</h2>
-                        <p className="text-slate-400 font-medium text-[11px] sm:text-sm hidden sm:block">
-                            {inputMode === 'file' ? 'PDF/이미지 업로드 → 텍스트 추출' : '단어와 문장 직접 입력'}
-                        </p>
-                    </div>
-                </div>
-
-                {(results || (inputMode === 'manual' && manualEntries.length > 0)) && (
-                    <button onClick={inputMode === 'file' ? handleProceed : handleManualProceed} className="btn-success flex items-center gap-2 text-sm px-4 py-2">
-                        <i className="fas fa-arrow-right"></i>
-                        <span className="hidden sm:inline">다음 단계로</span>
-                        <span className="sm:hidden">다음</span>
-                    </button>
-                )}
-            </div>
-
-            {/* 입력 모드 선택 탭 */}
+            {/* 입력 모드 선택 탭 — 선택 시 fill-in 동일 색상 */}
             <div className="flex gap-2 sm:gap-2">
                 <button
                     onClick={() => setInputMode('file')}
                     className={cn(
                         'flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 sm:gap-3',
                         inputMode === 'file'
-                            ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-200'
-                            : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-amber-300'
+                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                            : 'bg-white border-2 border-slate-200 text-slate-400 hover:border-slate-300'
                     )}
                 >
-                    <i className="fas fa-file-upload text-lg"></i>
+                    <i className="fas fa-file-upload"></i>
                     파일 업로드 (OCR)
                 </button>
                 <button
@@ -748,12 +720,12 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                     className={cn(
                         'flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 sm:gap-3',
                         inputMode === 'manual'
-                            ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200'
-                            : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-indigo-300'
+                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                            : 'bg-white border-2 border-slate-200 text-slate-400 hover:border-slate-300'
                     )}
                 >
-                    <i className="fas fa-keyboard text-lg"></i>
-                    직접 입력
+                    <i className="fas fa-keyboard"></i>
+                    직접입력
                 </button>
             </div>
 
@@ -820,21 +792,29 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
             {/* 직접 입력 영역 */}
             {inputMode === 'manual' && (
                 <div className="space-y-6">
-                    {/* 추가 버튼 */}
+                    {/* 하위 메뉴 — 선택 시 외곽선 색상, 미선택 시 회색 */}
                     <div className="flex gap-3">
                         <button
-                            onClick={() => addManualEntry('word')}
-                            className="flex-1 btn-primary flex items-center justify-center gap-2"
+                            onClick={() => { setManualSubTab('word'); addManualEntry('word'); }}
+                            className={cn(
+                                'flex-1 py-3 rounded-xl font-bold text-sm border-2 transition-all flex items-center justify-center gap-2',
+                                manualSubTab === 'word'
+                                    ? 'border-indigo-500 text-indigo-600 bg-white'
+                                    : 'border-slate-200 text-slate-400 bg-white hover:border-slate-300'
+                            )}
                         >
-                            <i className="fas fa-plus"></i>
-                            단어 추가
+                            + 단어 추가
                         </button>
                         <button
-                            onClick={() => addManualEntry('sentence')}
-                            className="flex-1 btn-secondary flex items-center justify-center gap-2"
+                            onClick={() => { setManualSubTab('sentence'); addManualEntry('sentence'); }}
+                            className={cn(
+                                'flex-1 py-3 rounded-xl font-bold text-sm border-2 transition-all flex items-center justify-center gap-2',
+                                manualSubTab === 'sentence'
+                                    ? 'border-indigo-500 text-indigo-600 bg-white'
+                                    : 'border-slate-200 text-slate-400 bg-white hover:border-slate-300'
+                            )}
                         >
-                            <i className="fas fa-plus"></i>
-                            문장 추가
+                            + 문장 추가
                         </button>
                     </div>
 
@@ -882,7 +862,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                 type="text"
                                                 value={entry.text}
                                                 onChange={(e) => updateManualEntry(entry.id, { text: e.target.value })}
-                                                placeholder={entry.type === 'word' ? '예: 苹果' : '예: 我喜欢吃苹果'}
+                                                placeholder={entry.type === 'word' ? '예: apple, 苹果' : '예: I like apples, 我喜欢吃苹果'}
                                                 className="input-field text-xl font-bold"
                                             />
                                         </div>
@@ -952,21 +932,28 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* 오디오 업로드 */}
+                                        {/* 오디오 업로드 + AI TTS */}
                                         <div className="flex-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">
                                                 오디오
                                             </label>
                                             <div className="flex items-center gap-2">
                                                 {entry.audioUrl ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <audio src={entry.audioUrl} controls className="h-10" />
-                                                        <button
-                                                            onClick={() => updateManualEntry(entry.id, { audioUrl: undefined, audioFile: undefined })}
-                                                            className="w-6 h-6 bg-red-500 text-white rounded-full text-xs"
-                                                        >
-                                                            ×
-                                                        </button>
+                                                    <div className="space-y-2">
+                                                        <audio src={entry.audioUrl} controls className="h-10 w-full" />
+                                                        <div className="flex gap-2">
+                                                            <span className="flex-1 text-center text-sm font-bold text-indigo-600 cursor-default">적용</span>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (window.confirm('Sure to delete?')) {
+                                                                        updateManualEntry(entry.id, { audioUrl: undefined, audioFile: undefined });
+                                                                    }
+                                                                }}
+                                                                className="w-7 h-7 bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-700 rounded-full flex items-center justify-center transition-all"
+                                                            >
+                                                                <i className="fas fa-times text-xs"></i>
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <label className="cursor-pointer">

@@ -38,6 +38,7 @@ interface Step2RefinementProps {
     engineModel?: string;
     geminiApiKey?: string;
     classificationConfig?: ClassificationConfig;
+    onDirtyChange?: (dirty: boolean) => void;
 }
 
 export const Step2Refinement: React.FC<Step2RefinementProps> = ({
@@ -48,7 +49,8 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
     onBack,
     engineModel = 'gemini-2.0-flash-exp',
     geminiApiKey,
-    classificationConfig = DEFAULT_CLASSIFICATION
+    classificationConfig = DEFAULT_CLASSIFICATION,
+    onDirtyChange
 }) => {
     // 뷰 모드
     const [viewMode, setViewMode] = useState<'ASSET_POOL' | 'PAGE_EDITOR'>(workingSession?.config?.viewMode || 'ASSET_POOL');
@@ -106,45 +108,70 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
             return workingSession.resources;
         }
 
-        // 메타정보 필터링 패턴
-        const metaPatterns = [
-            /^(name|date|time|이름|날짜|시간):?\s*$/i,
-            /^\d+[a-z]\s*\d*$/i,
-            /^(level|page|단원|페이지)/i,
-            /따라.*읽/,
-            /write.*answer/i,
-            /구몬|kefl|kumon/i,
-        ];
-        const isMetaContent = (text: string) =>
-            metaPatterns.some(p => p.test(text.trim()));
+        // 고유 세트(aggregatedSet)에서 리소스 생성
+        if (initialData?.aggregatedSet) {
+            const agg = initialData.aggregatedSet;
+            const allItems: ResourceData[] = [];
 
-        if (initialData?.results) {
-            const seenTexts = new Set<string>();
-            const resources: ResourceData[] = initialData.results
-                .filter(block => block.type !== 'meta' && block.type !== 'title')
-                .filter(block => !isMetaContent(block.original))
-                .filter(block => {
-                    const normalizedText = block.original.trim().toLowerCase();
-                    if (seenTexts.has(normalizedText)) return false;
-                    seenTexts.add(normalizedText);
-                    return true;
-                })
-                .map(block => ({
+            // 추출 단어
+            (agg.extractedVocabulary || []).forEach(item => {
+                allItems.push({
                     id: generateId(),
-                    text: block.original,
-                    subText: block.reading,
-                    translation: block.translation,
-                    dataUnit: (block.type as DataUnit) || detectDataUnit(block.original),
-                    sourceBlockId: block.id,
-                    isDirectInput: block.type === 'word' || block.type === 'sentence',
-                    imageUrl: block.imageUrl,
-                    audioUrl: block.audioUrl
-                }));
-            // [FIX] 동적 setKey 생성 (hierarchy 기반)
-            // workingSession의 hierarchy를 사용하거나, 없으면 기본값 사용
+                    text: item.text,
+                    subText: item.reading || item.pronunciation,
+                    translation: item.translation,
+                    dataUnit: 'word' as DataUnit,
+                    isDirectInput: false,
+                    imageUrl: item.imageUrl,
+                    audioUrl: item.audioUrl
+                });
+            });
+
+            // 추출 문장
+            (agg.extractedSentences || []).forEach(item => {
+                allItems.push({
+                    id: generateId(),
+                    text: item.text,
+                    subText: item.reading || item.pronunciation,
+                    translation: item.translation,
+                    dataUnit: 'sentence' as DataUnit,
+                    isDirectInput: false,
+                    imageUrl: item.imageUrl,
+                    audioUrl: item.audioUrl
+                });
+            });
+
+            // 관련 단어 (AI 추천)
+            (agg.relatedVocabulary || []).forEach(item => {
+                allItems.push({
+                    id: generateId(),
+                    text: item.text,
+                    subText: item.reading || item.pronunciation,
+                    translation: item.translation,
+                    dataUnit: 'word' as DataUnit,
+                    aiGenerated: true,
+                    imageUrl: item.imageUrl,
+                    audioUrl: item.audioUrl
+                });
+            });
+
+            // 관련 문장 (AI 추천)
+            (agg.relatedSentences || []).forEach(item => {
+                allItems.push({
+                    id: generateId(),
+                    text: item.text,
+                    subText: item.reading || item.pronunciation,
+                    translation: item.translation,
+                    dataUnit: 'sentence' as DataUnit,
+                    aiGenerated: true,
+                    imageUrl: item.imageUrl,
+                    audioUrl: item.audioUrl
+                });
+            });
+
             const h = workingSession?.hierarchy || { subject: 'Chinese', level: '1', set: '1', page: '1' };
             const dynamicSetKey = `${h.subject}-${h.level}-${h.set}`;
-            return { [dynamicSetKey]: resources } as Record<string, ResourceData[]>;
+            return { [dynamicSetKey]: allItems } as Record<string, ResourceData[]>;
         }
         return {} as Record<string, ResourceData[]>;
     });
@@ -175,6 +202,16 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
             [setPageKey]: pageStacks
         }));
     }, [pageStacks, setPageKey]);
+
+    // 데이터 편집 감지 → 미저장 상태(dirty) 알림
+    const isMountedRef = useRef(false);
+    useEffect(() => {
+        if (!isMountedRef.current) {
+            isMountedRef.current = true;
+            return;
+        }
+        onDirtyChange?.(true);
+    }, [globalResources, pageStacks]);
 
     // 후리가나 처리 유틸리티
     const processFuriganaForTTS = (text: string) => {
@@ -725,6 +762,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
 
             // 저장 후 맵 갱신
             await refreshStorageMap();
+            onDirtyChange?.(false);
             alert('현재 편집 상태가 Supabase DB에 개별 저장되었습니다.');
         } catch (error: any) {
             console.error('Step2 Save Error:', error);

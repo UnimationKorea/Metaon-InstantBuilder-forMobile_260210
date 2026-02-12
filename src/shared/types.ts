@@ -70,7 +70,10 @@ export interface PageSummary {
 export interface LinguisticItem {
     text: string;
     reading?: string;
+    pronunciation?: string;
     translation: string;
+    imageUrl?: string;
+    audioUrl?: string;
 }
 
 // ===== Step 2: 데이터 편집 스키마 =====

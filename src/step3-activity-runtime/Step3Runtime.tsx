@@ -5,7 +5,7 @@
  * 메타온 액티비티 선택 및 샌드박스 실행
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     Step2Session,
     Step3ActivityBundle,
@@ -14,15 +14,12 @@ import {
     ActivityType,
     ResourceData,
     PageHierarchy,
-    ClassificationConfig,
-    DEFAULT_CLASSIFICATION,
     ACTIVITY_TYPES,
     generateId,
     getTimestamp,
     cn,
     saveAppState,
     stateManager,
-    fetchStorageMap,
     fetchPageContent
 } from '@/shared';
 
@@ -30,41 +27,24 @@ interface Step3RuntimeProps {
     sessionData: Step2Session | null;
     onComplete: (data: Step3ActivityBundle) => void;
     onBack?: () => void;
-    onNavigateToStep1?: (hierarchy: PageHierarchy) => void; // 신규 입력
-    onNavigateToStep2?: (hierarchy: PageHierarchy) => void; // 편집
-    classificationConfig?: ClassificationConfig;
 }
 
 export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
     sessionData,
     onComplete,
-    onBack,
-    onNavigateToStep1,
-    onNavigateToStep2,
-    classificationConfig = DEFAULT_CLASSIFICATION
+    onBack
 }) => {
     // 전역 계층 상태 (stateManager에서 초기화)
-    const [hierarchy, setHierarchy] = useState<PageHierarchy>(
-        sessionData?.hierarchy || stateManager.getState().hierarchy
-    );
-
-    // CMS 저장 맵 (DB에 저장된 페이지 목록)
-    const [storageMap, setStorageMap] = useState<any[]>([]);
-    const [isLoadingMap, setIsLoadingMap] = useState(true);
+    const hierarchy: PageHierarchy = sessionData?.hierarchy || stateManager.getState().hierarchy;
 
     // 로컬 세션 데이터 (계층 변경 시 DB에서 로드)
     const [localSessionData, setLocalSessionData] = useState<Step2Session | null>(sessionData);
     const [isLoadingPageData, setIsLoadingPageData] = useState(false);
 
-    // 현재 페이지의 데이터 존재 여부
-    const hasDataForCurrentPage = useMemo(() => {
-        return storageMap.some(m =>
-            m.subject === hierarchy.subject &&
-            m.level === hierarchy.level &&
-            m.set_num === hierarchy.set &&
-            m.page_num === hierarchy.page
-        );
-    }, [storageMap, hierarchy]);
+    // sessionData prop 변경 시 localSessionData 동기화
+    useEffect(() => {
+        setLocalSessionData(sessionData);
+    }, [sessionData]);
 
     // 상태
     const [selectedActivities, setSelectedActivities] = useState<ActivityConfig[]>([]);
@@ -73,16 +53,6 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
     const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
     const [tempSyncStatus, setTempSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
     const [previewMode, setPreviewMode] = useState(false);
-
-    // 초기 로드: 저장 맵 가져오기
-    useEffect(() => {
-        (async () => {
-            setIsLoadingMap(true);
-            const { data } = await fetchStorageMap();
-            if (data) setStorageMap(data);
-            setIsLoadingMap(false);
-        })();
-    }, []);
 
     // 계층 변경 시 전역 상태 동기화 + DB에서 해당 페이지 데이터 자동 로드
     useEffect(() => {
@@ -133,10 +103,7 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
         })();
     }, [hierarchy.subject, hierarchy.level, hierarchy.set, hierarchy.page]);
 
-    // 계층 변경 핸들러
-    const handleHierarchyChange = useCallback((newH: Partial<PageHierarchy>) => {
-        setHierarchy(prev => ({ ...prev, ...newH }));
-    }, []);
+
 
     // iframe ref - 향후 실제 샌드박스 구현 시 사용 예정
     // const sandboxRef = useRef<HTMLIFrameElement>(null);
@@ -364,102 +331,6 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
                 </div>
             </div>
 
-            {/* [변경] 계층 선택 네비게이션 - 모바일 2열 그리드 */}
-            <div className="card p-3 sm:p-4 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 sm:gap-4 bg-white/80 backdrop-blur-lg border-2 border-indigo-100">
-                <div className="flex-1 min-w-[100px]">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">{classificationConfig.subject}</label>
-                    <select
-                        value={hierarchy.subject}
-                        onChange={(e) => handleHierarchyChange({ subject: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
-                    >
-                        {['Hanja', 'Chinese', 'Japanese', 'English', 'Korean'].slice(0, classificationConfig.subjectCount || 5).map(s => (
-                            <option key={s} value={s}>{s}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="flex-1 min-w-[80px]">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">{classificationConfig.label1}</label>
-                    <select
-                        value={hierarchy.level}
-                        onChange={(e) => handleHierarchyChange({ level: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
-                    >
-                        {Array.from({ length: classificationConfig.label1Count || 1 }, (_, i) => String(i + 1)).map(l => {
-                            const exists = storageMap.some(m => m.subject === hierarchy.subject && m.level === l);
-                            return <option key={l} value={l} style={{ color: exists ? '#ef4444' : 'inherit' }}>{l}{exists ? ' (data)' : ''}</option>;
-                        })}
-                    </select>
-                </div>
-                <div className="flex-1 min-w-[80px]">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">{classificationConfig.label2}</label>
-                    <select
-                        value={hierarchy.set}
-                        onChange={(e) => handleHierarchyChange({ set: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
-                    >
-                        {Array.from({ length: classificationConfig.label2Count || 1 }, (_, i) => String(i + 1)).map(sn => {
-                            const exists = storageMap.some(m => m.subject === hierarchy.subject && m.level === hierarchy.level && m.set_num === sn);
-                            return <option key={sn} value={sn} style={{ color: exists ? '#ef4444' : 'inherit' }}>{sn}{exists ? ' (data)' : ''}</option>;
-                        })}
-                    </select>
-                </div>
-                <div className="flex-1 min-w-[80px]">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">{classificationConfig.label3}</label>
-                    <select
-                        value={hierarchy.page}
-                        onChange={(e) => handleHierarchyChange({ page: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
-                    >
-                        {Array.from({ length: classificationConfig.label3Count || 1 }, (_, i) => String(i + 1)).map(pn => {
-                            const exists = storageMap.some(m => m.subject === hierarchy.subject && m.level === hierarchy.level && m.set_num === hierarchy.set && m.page_num === pn);
-                            return <option key={pn} value={pn} style={{ color: exists ? '#ef4444' : 'inherit', fontWeight: exists ? 'bold' : 'normal' }}>{pn}{exists ? ' ●' : ''}</option>;
-                        })}
-                    </select>
-                </div>
-
-                {/* 액션 버튼: 편집 / 신규 */}
-                <div className="flex flex-col gap-2 ml-auto">
-                    {hasDataForCurrentPage ? (
-                        <button
-                            onClick={() => onNavigateToStep2?.(hierarchy)}
-                            className="tooltip px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-bold text-sm flex items-center gap-2 transition-colors"
-                            data-tooltip="선택한 페이지의 데이터를 편집합니다"
-                        >
-                            <i className="fas fa-edit"></i> 편집
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => onNavigateToStep1?.(hierarchy)}
-                            className="tooltip px-4 py-2 bg-amber-500 hover:bg-amber-600 rounded-lg text-white font-bold text-sm flex items-center gap-2 transition-colors"
-                            data-tooltip="선택한 페이지에 새 원고를 입력합니다"
-                        >
-                            <i className="fas fa-plus"></i> 신규 입력
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* 로딩 상태 표시 - shimmer 스켈레톤 */}
-            {isLoadingMap && (
-                <div className="space-y-4 animate-fade-in">
-                    <div className="card p-6">
-                        <div className="flex items-center gap-6">
-                            <div className="skeleton skeleton-circle w-16 h-16"></div>
-                            <div className="flex-1 space-y-3">
-                                <div className="skeleton skeleton-text"></div>
-                                <div className="skeleton skeleton-text-sm"></div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="skeleton w-16 h-12 rounded-xl"></div>
-                                <div className="skeleton w-16 h-12 rounded-xl"></div>
-                                <div className="skeleton w-16 h-12 rounded-xl"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="skeleton skeleton-card w-full"></div>
-                </div>
-            )}
 
             {/* 세션 정보 */}
             <div className={cn("card p-4 sm:p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-100 transition-opacity duration-300", isLoadingPageData && "opacity-50")}>

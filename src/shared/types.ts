@@ -77,6 +77,13 @@ export interface LinguisticItem {
 }
 
 // ===== Step 2: 데이터 편집 스키마 =====
+export interface VoiceSettings {
+    lang: string;
+    voice: 'female' | 'male';
+    speed: number;
+    pitch: number;
+}
+
 export interface ResourceData {
     id: string;
     text: string;              // 원문 (슬래시 분절 지원)
@@ -89,6 +96,9 @@ export interface ResourceData {
     audioUrl?: string;
     imageFile?: string;
     imageUrl?: string;
+
+    // AI 음성 설정
+    voiceSettings?: VoiceSettings;
 
     // 메타데이터
     isDirectInput?: boolean;   // AI 생성 vs 직접 입력
@@ -174,7 +184,8 @@ export type ActivityType =
     | 'handwriting'        // 필기연습
     | 'flashcard'          // 플래시카드
     | 'drag_drop'          // 드래그앤드롭
-    | 'metaverse_explore'; // 메타버스 탐험
+    | 'metaverse_explore'  // 메타버스 탐험
+    | 'line_matching';     // 선긋기 게임
 
 export interface ActivityConfig {
     id: string;
@@ -269,6 +280,7 @@ export const ACTIVITY_TYPES: { id: ActivityType; label: string; icon: string }[]
     { id: 'flashcard', label: '플래시카드', icon: 'fa-clone' },
     { id: 'drag_drop', label: '드래그앤드롭', icon: 'fa-hand-pointer' },
     { id: 'metaverse_explore', label: '메타버스 탐험', icon: 'fa-vr-cardboard' },
+    { id: 'line_matching', label: '선긋기 게임', icon: 'fa-bezier-curve' },
 ];
 
 export const DATA_UNIT_LABELS: Record<DataUnit, string> = {

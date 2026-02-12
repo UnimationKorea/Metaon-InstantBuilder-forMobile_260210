@@ -46,7 +46,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
     initialData,
     onComplete,
     onUpdate,
-    engineModel = 'gemini-2.0-flash-exp',
+    engineModel = 'gemini-1.5-flash',
     geminiApiKey,
     onCostUpdate
 }) => {
@@ -211,9 +211,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
         본문의 학습 주제를 파악하여 다음을 제공:
         - topic: 학습 주제 (예: "시간 묻고 답하기", "숫자와 시간 표현")
         - learningGoal: 학생이 달성할 구체적 목표
-        - learningDirection: 학습 방향 설명 (2-3문장)시간을 영어로 정확하게 말할 수 있다"
-          예: "What time is it? 질문에 It is ___. 형식으로 답할 수 있다"
-        - learningDirection: 학습 방향 설명 (2-3문장)
+        - learningDirection: 학습 방향 설명 (2-3문장). 예: "시간을 영어로 정확하게 말할 수 있다. What time is it? 질문에 It is ___. 형식으로 답할 수 있다"
         - keyPoints: 핵심 학습 포인트 (3-5개)
           예: ["숫자 1-12 영어 표현", "It is ___. 문장 구조", "시간 묻는 표현"]
         
@@ -364,12 +362,12 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                 // @ts-ignore - SDK 버전에 따라 타이핑이 다를 수 있음
                 const usage = response.usageMetadata;
                 if (usage) {
-                    onCostUpdate(engineModel || 'gemini-2.0-flash-exp', usage.promptTokenCount || 0, usage.candidatesTokenCount || 0);
+                    onCostUpdate(engineModel || 'gemini-1.5-flash', usage.promptTokenCount || 0, usage.candidatesTokenCount || 0);
                 } else {
                     // Fallback estimation
                     const inputEst = (prompt.length + base64Data.length * 0.5) / 4;
                     const outputEst = (response.text?.length || 1000) / 4;
-                    onCostUpdate(engineModel || 'gemini-2.0-flash-exp', Math.round(inputEst), Math.round(outputEst));
+                    onCostUpdate(engineModel || 'gemini-1.5-flash', Math.round(inputEst), Math.round(outputEst));
                 }
             }
 
@@ -706,77 +704,76 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
     };
 
     return (
-        <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
-            {/* 입력 모드 선택 탭 — 상호 비활성화 적용 */}
-            <div className="flex gap-2 sm:gap-2">
+        <div className="space-y-6 sm:space-y-10 animate-fade-in px-2 sm:px-0">
+            {/* 입력 모드 선택 (Tiimo Soft Tabs) */}
+            <div className="flex p-2 bg-white/40 backdrop-blur-md rounded-[2.5rem] border border-white/40 shadow-sm max-w-sm mx-auto">
                 <button
                     onClick={() => setInputMode('file')}
                     disabled={manualEntries.length > 0}
                     className={cn(
-                        'flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 sm:gap-3',
+                        'flex-1 py-4 rounded-full font-black text-sm transition-all duration-500 flex items-center justify-center gap-3',
                         inputMode === 'file'
-                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                            : 'bg-white border-2 border-slate-200 text-slate-400 hover:border-slate-300',
-                        manualEntries.length > 0 && 'opacity-50 cursor-not-allowed bg-slate-50'
+                            ? 'bg-white text-[#9B87F5] shadow-md'
+                            : 'text-slate-400 hover:bg-white/40',
+                        manualEntries.length > 0 && 'opacity-30 cursor-not-allowed'
                     )}
                 >
-                    <i className="fas fa-file-upload"></i>
-                    파일 업로드 (OCR)
+                    <i className="fas fa-magic"></i>
+                    Magical OCR
                 </button>
                 <button
                     onClick={() => setInputMode('manual')}
                     disabled={!!currentFile}
                     className={cn(
-                        'flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 sm:gap-3',
+                        'flex-1 py-4 rounded-full font-black text-sm transition-all duration-500 flex items-center justify-center gap-3',
                         inputMode === 'manual'
-                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                            : 'bg-white border-2 border-slate-200 text-slate-400 hover:border-slate-300',
-                        !!currentFile && 'opacity-50 cursor-not-allowed bg-slate-50'
+                            ? 'bg-white text-[#9B87F5] shadow-md'
+                            : 'text-slate-400 hover:bg-white/40',
+                        !!currentFile && 'opacity-30 cursor-not-allowed'
                     )}
                 >
                     <i className="fas fa-keyboard"></i>
-                    직접입력
+                    Direct Entry
                 </button>
             </div>
 
-            {/* 파일 업로드 / 카메라 촬영 영역 */}
+            {/* 파일 업로드 / 카메라 촬영 영역 (Tiimo Style) */}
             {inputMode === 'file' && !currentFile && (
                 <div
                     ref={dropZoneRef}
-                    className="dropzone p-8 sm:p-16 flex flex-col items-center justify-center bg-white min-h-[220px] sm:min-h-[300px]"
+                    className="dropzone p-10 sm:p-20 flex flex-col items-center justify-center bg-white/60 shadow-inner"
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center mb-4 sm:mb-6 float-animation">
-                        <i className="fas fa-cloud-upload-alt text-3xl sm:text-4xl text-amber-500"></i>
+                    <div className="w-24 h-24 rounded-[2rem] bg-[#FFEFE6] flex items-center justify-center mb-8 float-animation">
+                        <i className="fas fa-cloud-sun text-4xl text-[#FF9E85]"></i>
                     </div>
-                    <h3 className="text-lg sm:text-2xl font-black text-slate-700 mb-2 text-center">원고를 업로드하세요</h3>
-                    <p className="text-slate-400 text-xs sm:text-sm font-medium mb-6 text-center">PDF, JPG, PNG, WebP (최대 20MB)</p>
+                    <h3 className="text-3xl font-serif text-[#2D2D2D] mb-3 text-center">Capture your magic</h3>
+                    <p className="text-slate-400 text-sm font-bold mb-8 text-center max-w-xs">학습 원고를 업로드하거나 촬영하여 자동으로 분석하세요.</p>
 
-                    {/* 파일 선택 + 카메라 촬영 버튼 */}
-                    <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                    {/* 액션 버튼 그룹 (Soft Pill Styles) */}
+                    <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xs">
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm rounded-2xl shadow-lg shadow-amber-200 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                            className="btn-primary !bg-[#9B87F5] !from-[#9B87F5] !to-[#8170FF]"
                         >
-                            <i className="fas fa-folder-open text-lg"></i>
-                            파일 선택
+                            <i className="fas fa-plus mr-2"></i>
+                            Select File
                         </button>
                         <button
                             type="button"
                             onClick={() => cameraInputRef.current?.click()}
-                            className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-sm rounded-2xl shadow-lg shadow-indigo-200 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                            className="px-8 py-4 bg-[#FFEFE6] text-[#FF9E85] font-black rounded-full hover:bg-[#FFE4D6] transition-all flex items-center justify-center shadow-lg shadow-orange-50"
                         >
-                            <i className="fas fa-camera text-lg"></i>
-                            카메라 촬영
+                            <i className="fas fa-camera mr-2"></i>
+                            Take Photo
                         </button>
                     </div>
 
-                    <p className="text-slate-300 text-[11px] mt-4 hidden sm:block">
-                        <i className="fas fa-info-circle mr-1"></i>
-                        데스크톱에서는 파일 드래그&드롭도 가능합니다
+                    <p className="text-slate-300 text-[11px] font-black uppercase tracking-widest mt-6">
+                        PDF • JPG • PNG • WEBP
                     </p>
 
                     {/* 기존 파일 선택 input (숨김) */}
@@ -799,67 +796,74 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                 </div>
             )}
 
-            {/* 직접 입력 영역 */}
+            {/* 직접 입력 영역 (Soft Action Tabs) */}
             {inputMode === 'manual' && (
-                <div className="space-y-6">
-                    {/* 하위 메뉴 — 선택 시 외곽선 색상, 미선택 시 회색 */}
-                    <div className="flex gap-3">
+                <div className="space-y-8 animate-fade-in">
+                    <div className="flex gap-4">
                         <button
                             onClick={() => { setManualSubTab('word'); addManualEntry('word'); }}
                             className={cn(
-                                'flex-1 py-3 rounded-xl font-bold text-sm border-2 transition-all flex items-center justify-center gap-2',
+                                "flex-1 p-5 rounded-[2rem] font-black text-sm transition-all duration-300 flex items-center justify-center gap-3 shadow-lg",
                                 manualSubTab === 'word'
-                                    ? 'border-indigo-500 text-indigo-600 bg-white'
-                                    : 'border-slate-200 text-slate-400 bg-white hover:border-slate-300'
+                                    ? "bg-[#FFEFE6] text-[#FF9E85] ring-4 ring-[#FF9E85]/5"
+                                    : "bg-white text-slate-400 border border-slate-50"
                             )}
                         >
-                            + 단어 추가
+                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                <i className="fas fa-plus text-[10px]"></i>
+                            </div>
+                            Add Vocabulary
                         </button>
                         <button
                             onClick={() => { setManualSubTab('sentence'); addManualEntry('sentence'); }}
                             className={cn(
-                                'flex-1 py-3 rounded-xl font-bold text-sm border-2 transition-all flex items-center justify-center gap-2',
+                                "flex-1 p-5 rounded-[2rem] font-black text-sm transition-all duration-300 flex items-center justify-center gap-3 shadow-lg",
                                 manualSubTab === 'sentence'
-                                    ? 'border-indigo-500 text-indigo-600 bg-white'
-                                    : 'border-slate-200 text-slate-400 bg-white hover:border-slate-300'
+                                    ? "bg-[#E6FFFA] text-[#4FD1C5] ring-4 ring-[#4FD1C5]/5"
+                                    : "bg-white text-slate-400 border border-slate-50"
                             )}
                         >
-                            + 문장 추가
+                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                <i className="fas fa-plus text-[10px]"></i>
+                            </div>
+                            Add Sentence
                         </button>
                     </div>
 
-                    {/* 입력된 항목 목록 */}
+                    {/* 입력된 항목 목록 (Minimalist Cards) */}
                     {manualEntries.length === 0 ? (
-                        <div className="card p-16 text-center">
-                            <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                                <i className="fas fa-keyboard text-4xl text-slate-300"></i>
+                        <div className="card p-20 text-center bg-white/40">
+                            <div className="w-24 h-24 rounded-[2.5rem] bg-[#E0D7FF]/30 flex items-center justify-center mx-auto mb-6 float-animation">
+                                <i className="fas fa-feather text-4xl text-[#9B87F5]"></i>
                             </div>
-                            <p className="text-slate-400 font-bold">항목이 없습니다</p>
-                            <p className="text-slate-300 text-sm mt-1">위 버튼을 클릭하여 단어나 문장을 추가하세요</p>
+                            <p className="text-[#2D2D2D] font-serif text-xl">Empty pocket</p>
+                            <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest">Add your first magic content above</p>
                         </div>
                     ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             {manualEntries.map((entry, idx) => (
-                                <div key={entry.id} className="card p-6 relative">
+                                <div key={entry.id} className="card !p-8 animate-slide-up relative group">
                                     {/* 삭제 버튼 */}
                                     <button
                                         onClick={() => deleteManualEntry(entry.id)}
-                                        className="absolute top-3 right-3 w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-700 transition-all flex items-center justify-center"
+                                        className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-white text-rose-400 shadow-lg flex items-center justify-center hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
                                     >
                                         <i className="fas fa-times"></i>
                                     </button>
 
-                                    {/* 타입 배지 */}
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <span className="text-lg font-black text-slate-300">#{idx + 1}</span>
-                                        <span className={cn(
-                                            'px-3 py-1 rounded-full text-xs font-bold',
-                                            entry.type === 'word'
-                                                ? 'bg-amber-100 text-amber-700'
-                                                : 'bg-blue-100 text-blue-700'
-                                        )}>
-                                            {entry.type === 'word' ? '단어' : '문장'}
-                                        </span>
+                                    {/* 상단 표시기 */}
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 font-serif font-black">
+                                                {String(idx + 1).padStart(2, '0')}
+                                            </div>
+                                            <span className={cn(
+                                                "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
+                                                entry.type === 'word' ? "bg-[#FFEFE6] text-[#FF9E85]" : "bg-[#E6FFFA] text-[#4FD1C5]"
+                                            )}>
+                                                {entry.type === 'word' ? 'Vocabulary' : 'Sentence'}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     {/* 입력 필드들 */}
@@ -1026,106 +1030,101 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                 </div>
             )}
 
-            {/* 파일 미리보기 */}
+            {/* 파일 미리보기 및 처리 과정 (Tiimo Aesthetic) */}
             {inputMode === 'file' && currentFile && !results && (
-                <div className="card overflow-hidden">
-                    <div className="card-header flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                                {currentFile.type.startsWith('image/') ? (
-                                    <i className="fas fa-image text-2xl text-slate-400"></i>
-                                ) : (
-                                    <i className="fas fa-file-pdf text-2xl text-red-400"></i>
-                                )}
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-slate-800 text-lg">{currentFile.name}</h4>
-                                <p className="text-sm text-slate-400">
-                                    {(currentFile.size / (1024 * 1024)).toFixed(2)} MB • {currentFile.type.split('/')[1].toUpperCase()}
-                                </p>
-                            </div>
-                        </div>
-                        <button onClick={handleReset} className="p-3 hover:bg-slate-100 rounded-xl transition-colors">
-                            <i className="fas fa-times text-slate-400"></i>
-                        </button>
-                    </div>
-
-                    {/* 이미지 미리보기 */}
-                    {currentFile.type.startsWith('image/') && (
-                        <div className="p-8 bg-slate-50 flex justify-center">
-                            <img
-                                src={URL.createObjectURL(currentFile)}
-                                alt="Preview"
-                                className="max-h-[400px] rounded-2xl shadow-xl"
-                            />
-                        </div>
-                    )}
-
-                    {/* 액션 버튼 */}
-                    <div className="p-6 flex justify-center gap-4">
-                        <button onClick={handleReset} className="btn-secondary">
-                            <i className="fas fa-redo mr-2"></i>
-                            다시 선택
-                        </button>
-                        <button
-                            onClick={processOCR}
-                            disabled={isProcessing}
-                            className="btn-warning min-w-[200px]"
-                        >
-                            {isProcessing ? (
-                                <>
-                                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                                    분석 중... {progress}%
-                                </>
+                <div className="card overflow-hidden animate-fade-in !p-0">
+                    <div className="p-8 flex flex-col items-center">
+                        <div className="w-20 h-20 rounded-[2rem] bg-slate-50 flex items-center justify-center mb-6 shadow-inner">
+                            {currentFile.type.startsWith('image/') ? (
+                                <i className="fas fa-image text-3xl text-slate-300"></i>
                             ) : (
-                                <>
-                                    <i className="fas fa-magic mr-2"></i>
-                                    AI 텍스트 추출
-                                </>
+                                <i className="fas fa-file-pdf text-3xl text-rose-300"></i>
                             )}
-                        </button>
+                        </div>
+                        <h4 className="text-2xl font-serif text-[#2D2D2D] mb-1">{currentFile.name}</h4>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">
+                            {(currentFile.size / (1024 * 1024)).toFixed(2)} MB • {currentFile.type.split('/')[1].toUpperCase()}
+                        </p>
+
+                        {/* 이미지 미리보기 썸네일 */}
+                        {currentFile.type.startsWith('image/') && (
+                            <div className="w-full max-w-sm aspect-video rounded-[2.5rem] overflow-hidden bg-slate-100 mb-10 shadow-lg ring-8 ring-white/50">
+                                <img
+                                    src={URL.createObjectURL(currentFile)}
+                                    alt="Preview"
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        )}
+
+                        {/* 액션 버튼 */}
+                        <div className="flex flex-col gap-4 w-full max-w-xs">
+                            <button
+                                onClick={processOCR}
+                                disabled={isProcessing}
+                                className="btn-primary !h-16 !rounded-full !text-base"
+                            >
+                                {isProcessing ? (
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <span>Analyzing... {progress}%</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3">
+                                        <i className="fas fa-wand-magic-sparkles text-lg"></i>
+                                        <span>Start Magic Search</span>
+                                    </div>
+                                )}
+                            </button>
+                            <button
+                                onClick={handleReset}
+                                disabled={isProcessing}
+                                className="h-16 rounded-full font-black text-slate-400 hover:text-[#9B87F5] transition-all uppercase tracking-widest text-xs"
+                            >
+                                <i className="fas fa-redo mr-2 text-[10px]"></i>
+                                Change File
+                            </button>
+                        </div>
                     </div>
 
-                    {/* 프로그레스 바 */}
+                    {/* 정교한 프로그레스 정보 (Processing State) */}
                     {isProcessing && (
-                        <div className="px-8 pb-6 space-y-3">
-                            {/* 단계별 텍스트 */}
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="font-bold text-slate-600 flex items-center gap-2">
-                                    <i className={cn(
-                                        'fas',
-                                        progress <= 10 ? 'fa-file-import text-amber-500' :
-                                            progress <= 30 ? 'fa-cog fa-spin text-blue-500' :
-                                                progress <= 50 ? 'fa-brain text-purple-500' :
-                                                    progress <= 80 ? 'fa-puzzle-piece text-emerald-500' :
-                                                        'fa-check-circle text-green-500'
-                                    )}></i>
-                                    {progress <= 10 ? '파일 읽는 중...' :
-                                        progress <= 30 ? '데이터 인코딩 중...' :
-                                            progress <= 50 ? 'AI 분석 요청 중...' :
-                                                progress <= 80 ? '결과 구조화 중...' :
-                                                    '완료!'}
-                                </span>
-                                <span className="font-black text-indigo-600">{progress}%</span>
+                        <div className="bg-[#F8F9FF] p-8 space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-[#E0D7FF] text-[#9B87F5] flex items-center justify-center shadow-sm">
+                                        <i className={cn(
+                                            "fas text-xs",
+                                            progress <= 30 ? "fa-file-import" :
+                                                progress <= 50 ? "fa-brain" :
+                                                    progress <= 80 ? "fa-puzzle-piece" : "fa-check"
+                                        )}></i>
+                                    </div>
+                                    <p className="text-sm font-bold text-[#2D2D2D]">
+                                        {progress <= 30 ? "Reading document..." :
+                                            progress <= 50 ? "Thinking with AI..." :
+                                                progress <= 80 ? "Structuring content..." : "Almost there!"}
+                                    </p>
+                                </div>
+                                <span className="font-black text-[#9B87F5] text-sm tabular-nums">{progress}%</span>
                             </div>
-                            {/* 프로그레스 바 (그라데이션) */}
-                            <div className="progress-bar">
+
+                            <div className="h-3 w-full bg-white rounded-full overflow-hidden shadow-inner">
                                 <div
-                                    className="progress-bar-fill"
-                                    style={{
-                                        width: `${progress}%`,
-                                        background: `linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7)`,
-                                        transition: 'width 0.5s ease-in-out'
-                                    }}
-                                ></div>
+                                    className="h-full bg-gradient-to-r from-[#9B87F5] to-[#8170FF] transition-all duration-700 relative overflow-hidden"
+                                    style={{ width: `${progress}%` }}
+                                >
+                                    <div className="absolute inset-0 bg-[#ffffff30] animate-shimmer" />
+                                </div>
                             </div>
-                            {/* 4단계 미니 스텝 */}
-                            <div className="flex justify-between text-[10px] font-bold text-slate-300">
-                                <span className={progress >= 10 ? 'text-amber-500' : ''}>읽기</span>
-                                <span className={progress >= 30 ? 'text-blue-500' : ''}>인코딩</span>
-                                <span className={progress >= 50 ? 'text-purple-500' : ''}>AI 분석</span>
-                                <span className={progress >= 80 ? 'text-emerald-500' : ''}>구조화</span>
-                                <span className={progress >= 100 ? 'text-green-500' : ''}>완료</span>
+
+                            <div className="flex justify-between px-1">
+                                {['Reading', 'AI Analysis', 'Structuring', 'Finalizing'].map((step, i) => (
+                                    <span key={step} className={cn(
+                                        "text-[9px] font-black uppercase tracking-widest transition-colors",
+                                        progress >= (i + 1) * 25 ? "text-[#9B87F5]" : "text-slate-300"
+                                    )}>{step}</span>
+                                ))}
                             </div>
                         </div>
                     )}
@@ -1145,52 +1144,68 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                 </div>
             )}
 
-            {/* 결과 표시 */}
+            {/* 결과 표시 (Tiimo Content View) */}
             {results && (
-                <div className="space-y-6">
-                    {/* 결과 요약 */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-                        <div className="card p-6 text-center">
-                            <p className="text-4xl font-black text-indigo-600 mb-1">{results.metadata.totalBlocks}</p>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">총 블록</p>
+                <div className="space-y-12 animate-fade-in pb-20">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="card !p-6 flex items-center gap-5 bg-white/60">
+                            <div className="w-14 h-14 rounded-2xl bg-[#E0D7FF]/40 text-[#9B87F5] flex items-center justify-center shadow-sm">
+                                <i className="fas fa-cubes text-xl"></i>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Blocks</p>
+                                <p className="text-2xl font-serif text-[#2D2D2D]">{results.metadata.totalBlocks}</p>
+                            </div>
                         </div>
-                        <div className="card p-6 text-center">
-                            <p className="text-4xl font-black text-emerald-600 mb-1">{results.metadata.pageCount}</p>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">페이지</p>
+                        <div className="card !p-6 flex items-center gap-5 bg-white/60">
+                            <div className="w-14 h-14 rounded-2xl bg-[#E6FFFA]/40 text-[#4FD1C5] flex items-center justify-center shadow-sm">
+                                <i className="fas fa-copy text-xl"></i>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Pages</p>
+                                <p className="text-2xl font-serif text-[#2D2D2D]">{results.metadata.pageCount}</p>
+                            </div>
                         </div>
-                        <div className="card p-6 text-center">
-                            <p className="text-4xl font-black text-amber-600 mb-1">{results.metadata.languages.length}</p>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">언어</p>
+                        <div className="card !p-6 flex items-center gap-5 bg-white/60">
+                            <div className="w-14 h-14 rounded-2xl bg-[#FFEFE6]/40 text-[#FF9E85] flex items-center justify-center shadow-sm">
+                                <i className="fas fa-globe text-xl"></i>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Languages</p>
+                                <p className="text-2xl font-serif text-[#2D2D2D]">{results.metadata.languages.length}</p>
+                            </div>
                         </div>
-                        <div className="card p-6 text-center">
-                            <p className="text-4xl font-black text-purple-600 mb-1">{(results.metadata.processingTime / 1000).toFixed(1)}s</p>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">처리시간</p>
+                        <div className="card !p-6 flex items-center gap-5 bg-white/60">
+                            <div className="w-14 h-14 rounded-2xl bg-[#F8F9FF] text-[#9B87F5] flex items-center justify-center shadow-sm">
+                                <i className="fas fa-bolt text-xl"></i>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Time taken</p>
+                                <p className="text-2xl font-serif text-[#2D2D2D]">{(results.metadata.processingTime / 1000).toFixed(1)}s</p>
+                            </div>
                         </div>
                     </div>
 
-                    {/* 탭 및 동기화 버튼 */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
-                        <div className="flex bg-slate-100 p-1 rounded-2xl flex-1">
+                    {/* 탭 및 동기화 버튼 (Tiimo Navigation) */}
+                    <div className="flex flex-col gap-6">
+                        <div className="flex p-2 bg-white/40 backdrop-blur-md rounded-[2.5rem] border border-white/40 shadow-sm overflow-x-auto no-scrollbar">
                             {[
-                                { id: 'summary' as const, label: '페이지 요약', icon: 'fa-file-alt', desc: '학습 목표/내용' },
-                                { id: 'set' as const, label: '고유 세트', icon: 'fa-layer-group', desc: '단어/문장 정리' },
-                                { id: 'raw' as const, label: '원본 블록', icon: 'fa-list', desc: 'OCR 추출 원본' }
+                                { id: 'summary' as const, label: 'Summary', icon: 'fa-star' },
+                                { id: 'set' as const, label: 'Smart Set', icon: 'fa-wand-magic-sparkles' },
+                                { id: 'raw' as const, label: 'Raw Blocks', icon: 'fa-list-ul' }
                             ].map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={cn(
-                                        'flex-1 py-3 px-6 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center gap-1',
+                                        'flex-1 min-w-[100px] py-4 rounded-full font-black text-xs transition-all duration-500 flex items-center justify-center gap-3',
                                         activeTab === tab.id
-                                            ? 'bg-white text-indigo-600 shadow-md'
-                                            : 'text-slate-500 hover:text-slate-700'
+                                            ? 'bg-white text-[#9B87F5] shadow-md'
+                                            : 'text-slate-400 hover:bg-white/40'
                                     )}
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <i className={`fas ${tab.icon}`}></i>
-                                        {tab.label}
-                                    </div>
-                                    <span className="text-[10px] font-medium opacity-60">{tab.desc}</span>
+                                    <i className={`fas ${tab.icon} text-[10px]`}></i>
+                                    {tab.label}
                                 </button>
                             ))}
                         </div>
@@ -1199,49 +1214,54 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                             onClick={handleTempDBSync}
                             disabled={isSyncing}
                             className={cn(
-                                "flex items-center gap-2 px-6 py-4 rounded-2xl font-black text-sm transition-all shadow-lg",
-                                isSyncing
-                                    ? "bg-slate-100 text-slate-400 cursor-wait"
-                                    : "bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98]"
+                                "btn-primary !h-16 !from-emerald-400 !to-teal-500 !shadow-emerald-50",
+                                isSyncing && "opacity-50 cursor-wait"
                             )}
                         >
-                            <i className={cn("fas", isSyncing ? "fa-spinner fa-spin" : "fa-database")}></i>
-                            {isSyncing ? "동기화 중..." : "임시 DB 동기화"}
+                            <i className={cn("fas mr-3", isSyncing ? "fa-spinner fa-spin" : "fa-cloud-arrow-up")}></i>
+                            {isSyncing ? "Syncing magic..." : "Save to Cloud DB"}
                         </button>
                     </div>
 
-                    {/* 원본 블록 탭 */}
+                    {/* 원본 블록 탭 (Minimalist Feed) */}
                     {activeTab === 'raw' && (
-                        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                        <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
                             {results.results.map((item) => {
                                 const langInfo = getLanguageLabel(item.language);
                                 return (
                                     <div
                                         key={item.id}
-                                        className="card p-6 hover:border-indigo-300 transition-all border-l-4 border-l-transparent hover:border-l-indigo-500"
+                                        className="card !p-8 border-none bg-white hover:bg-[#F8F9FF] transition-all duration-300 relative group"
                                     >
-                                        <div className="flex items-start gap-6">
-                                            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                                                P{item.page || 1}
+                                        <div className="flex items-start gap-8">
+                                            <div className="w-12 h-12 rounded-[1.25rem] bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-lg">
+                                                <span className="font-serif font-black text-xs">P{item.page || 1}</span>
                                             </div>
-                                            <div className="flex-1 space-y-3">
+                                            <div className="flex-1 space-y-4">
                                                 <div className="flex justify-between items-center">
-                                                    <span className={cn('text-[10px] font-bold uppercase px-2 py-1 rounded border', langInfo.className)}>
+                                                    <span className={cn(
+                                                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
+                                                        langInfo.className
+                                                    )}>
                                                         {langInfo.label}
                                                     </span>
-                                                    <span className="text-[10px] font-mono text-slate-400">
-                                                        신뢰도: {Math.round(item.confidence * 100)}%
-                                                    </span>
-                                                </div>
-                                                <p className="text-2xl font-bold text-slate-900 font-serif">{item.original}</p>
-                                                {item.reading && (
-                                                    <div className="text-sm font-medium text-slate-400 italic bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                                        {item.reading}
+                                                    <div className="flex items-center gap-1.5 opacity-30">
+                                                        <i className="fas fa-bullseye text-[10px]"></i>
+                                                        <span className="text-[10px] font-black">{Math.round(item.confidence * 100)}%</span>
                                                     </div>
+                                                </div>
+                                                <p className="text-2xl font-serif text-[#2D2D2D] leading-relaxed">{item.original}</p>
+                                                {item.reading && (
+                                                    <p className="text-sm font-bold text-slate-400 italic bg-slate-50/50 p-3 rounded-2xl border border-slate-50 inline-block">
+                                                        {item.reading}
+                                                    </p>
                                                 )}
-                                                <div className="text-base font-bold text-indigo-700 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">
-                                                    <i className="fas fa-language mr-2 opacity-50"></i>
-                                                    {item.translation}
+                                                <div className="bg-[#E0D7FF]/30 p-5 rounded-[1.5rem] border border-[#E0D7FF]/20">
+                                                    <div className="flex items-center gap-2 mb-1 opacity-40">
+                                                        <i className="fas fa-language text-[10px]"></i>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest">Translation</span>
+                                                    </div>
+                                                    <p className="text-base font-black text-[#8170FF]">{item.translation}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -1251,79 +1271,63 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                         </div>
                     )}
 
-                    {/* 페이지 요약 탭 */}
+                    {/* 페이지 요약 탭 (Elegant Storyboard) */}
                     {activeTab === 'summary' && (
-                        <div className="space-y-6 max-h-[60vh] overflow-y-auto">
-                            {/* 탭 설명 */}
-                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white">
-                                        <i className="fas fa-bullseye"></i>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-black text-slate-900">페이지 요약</h3>
-                                        <p className="text-xs text-slate-500">문서 내용을 종합 분석한 주요 주제와 학습 목표</p>
-                                    </div>
-                                </div>
-                            </div>
-
+                        <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
                             {results.pageSummaries?.map((pSum, idx) => (
-                                <div key={idx} className="card overflow-hidden">
-                                    <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4">
-                                        <h3 className="text-white font-black text-xs uppercase tracking-widest">
-                                            Page {pSum.page} - 종합 분석
+                                <div key={idx} className="card !p-0 overflow-hidden border-none bg-white">
+                                    <div className="bg-[#2D2D2D] px-8 py-4 flex items-center justify-between">
+                                        <h3 className="text-white font-serif font-black text-sm italic">
+                                            Page {pSum.page} Analysis
                                         </h3>
+                                        <div className="w-2 h-2 rounded-full bg-[#9B87F5] animate-pulse"></div>
                                     </div>
-                                    <div className="p-6 space-y-5">
+                                    <div className="p-8 space-y-8">
                                         {/* 주요 주제 */}
                                         {pSum.topic && (
-                                            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-5 rounded-2xl border border-purple-200">
-                                                <p className="text-[10px] font-black text-purple-500 uppercase flex items-center gap-2 mb-2">
-                                                    <i className="fas fa-bookmark"></i> 주요 주제
-                                                </p>
-                                                <p className="text-xl font-black text-slate-900">
+                                            <div className="space-y-3">
+                                                <p className="text-[10px] font-black text-[#9B87F5] uppercase tracking-[0.2em]">Primary Topic</p>
+                                                <p className="text-3xl font-serif text-[#2D2D2D] leading-tight">
                                                     {pSum.topic}
                                                 </p>
                                             </div>
                                         )}
 
-                                        {/* 학습 목표 */}
-                                        {pSum.learningGoal && (
-                                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-2xl border border-blue-200">
-                                                <p className="text-[10px] font-black text-blue-500 uppercase flex items-center gap-2 mb-2">
-                                                    <i className="fas fa-bullseye"></i> 학습 목표
-                                                </p>
-                                                <p className="text-lg font-bold text-slate-800">
-                                                    {pSum.learningGoal}
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        {/* 학습 방향 */}
-                                        {pSum.learningDirection && (
-                                            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-5 rounded-2xl border border-emerald-200">
-                                                <p className="text-[10px] font-black text-emerald-500 uppercase flex items-center gap-2 mb-2">
-                                                    <i className="fas fa-compass"></i> 학습 방향
-                                                </p>
-                                                <p className="text-sm text-slate-700 leading-relaxed">
-                                                    {pSum.learningDirection}
-                                                </p>
-                                            </div>
-                                        )}
+                                        {/* 학습 목표 & 방향 */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {pSum.learningGoal && (
+                                                <div className="bg-[#F8F9FF] p-6 rounded-[2rem] border border-slate-50">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                        <i className="fas fa-bullseye text-[#9B87F5]"></i> Learning Goal
+                                                    </p>
+                                                    <p className="text-sm font-bold text-[#2D2D2D]">
+                                                        {pSum.learningGoal}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {pSum.learningDirection && (
+                                                <div className="bg-[#F8F9FF] p-6 rounded-[2rem] border border-slate-50">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                        <i className="fas fa-compass text-[#FF9E85]"></i> Roadmap
+                                                    </p>
+                                                    <p className="text-sm font-bold text-[#2D2D2D]">
+                                                        {pSum.learningDirection}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
 
                                         {/* 핵심 포인트 */}
                                         {pSum.keyPoints && pSum.keyPoints.length > 0 && (
-                                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-5 rounded-2xl border border-amber-200">
-                                                <p className="text-[10px] font-black text-amber-600 uppercase flex items-center gap-2 mb-3">
-                                                    <i className="fas fa-star"></i> 핵심 학습 포인트
-                                                </p>
-                                                <ul className="space-y-2">
+                                            <div className="bg-[#2D2D2D] p-8 rounded-[2.5rem] shadow-xl text-white">
+                                                <p className="text-[9px] font-black text-[#9B87F5] uppercase tracking-widest mb-6 block">Key Learning Points</p>
+                                                <ul className="space-y-4">
                                                     {pSum.keyPoints.map((point, i) => (
-                                                        <li key={i} className="flex items-start gap-3">
-                                                            <span className="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                                                {i + 1}
+                                                        <li key={i} className="flex items-start gap-4">
+                                                            <span className="font-serif italic text-[#9B87F5] text-lg font-black leading-none pt-0.5">
+                                                                {i + 1}.
                                                             </span>
-                                                            <span className="text-sm text-slate-700 font-medium">
+                                                            <span className="text-sm font-medium leading-relaxed opacity-90">
                                                                 {point}
                                                             </span>
                                                         </li>
@@ -1335,14 +1339,13 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                 </div>
                             ))}
 
-                            {/* 데이터 없음 */}
                             {(!results.pageSummaries || results.pageSummaries.length === 0) && (
-                                <div className="card p-12 text-center">
-                                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <i className="fas fa-file-alt text-2xl text-slate-300"></i>
+                                <div className="card p-20 text-center bg-white/40">
+                                    <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                                        <i className="fas fa-file-circle-question text-3xl text-slate-200"></i>
                                     </div>
-                                    <p className="text-slate-400 font-bold">페이지 요약이 없습니다</p>
-                                    <p className="text-slate-300 text-sm mt-1">OCR 처리 후 AI가 분석한 내용이 표시됩니다</p>
+                                    <p className="text-[#2D2D2D] font-serif text-xl">No insights yet</p>
+                                    <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest">AI hasn't generated summary for this file</p>
                                 </div>
                             )}
                         </div>
@@ -1364,216 +1367,251 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                 </div>
                             </div>
 
-                            {/* 1. 추출 단어 */}
-                            <div className="card overflow-hidden">
-                                <div className="bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-4 flex justify-between items-center">
-                                    <h3 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-2">
-                                        <i className="fas fa-spell-check"></i>
-                                        추출 단어 ({results.aggregatedSet?.extractedVocabulary?.length || 0})
-                                    </h3>
+                            {/* 1. 추출 단어 (Essential Vocabulary) */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-[#FFEFE6] text-[#FF9E85] flex items-center justify-center">
+                                            <i className="fas fa-spell-check text-[10px]"></i>
+                                        </div>
+                                        <h3 className="text-sm font-black text-[#2D2D2D] uppercase tracking-widest">Essential Vocabulary</h3>
+                                    </div>
                                     <button
                                         onClick={() => addAggregatedItem('extractedVocabulary')}
-                                        className="bg-white/20 hover:bg-white/40 text-white text-[10px] font-bold px-3 py-1 rounded-full transition-all"
+                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#9B87F5] transition-all"
                                     >
-                                        <i className="fas fa-plus mr-1"></i> 추가
+                                        <i className="fas fa-plus text-[10px]"></i>
                                     </button>
                                 </div>
-                                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {results.aggregatedSet?.extractedVocabulary?.map((item, i) => (
-                                        <div key={i} className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 hover:border-indigo-300 transition-colors group relative space-y-2">
-                                            <div className="flex gap-2">
-                                                <input
-                                                    value={item.text}
-                                                    onChange={(e) => updateAggregatedItem('extractedVocabulary', i, { text: e.target.value })}
-                                                    className="flex-1 bg-white border border-indigo-100 rounded px-2 py-1 text-sm font-bold"
-                                                    placeholder="단어"
-                                                />
-                                                <input
-                                                    value={item.reading || ''}
-                                                    onChange={(e) => updateAggregatedItem('extractedVocabulary', i, { reading: e.target.value })}
-                                                    className="w-1/3 bg-white border border-indigo-100 rounded px-2 py-1 text-[10px]"
-                                                    placeholder="발음"
-                                                />
+                                        <div key={i} className="card !p-6 bg-white hover:shadow-xl transition-all duration-300 group relative">
+                                            <div className="flex flex-col gap-4">
+                                                <div className="flex gap-3">
+                                                    <input
+                                                        value={item.text}
+                                                        onChange={(e) => updateAggregatedItem('extractedVocabulary', i, { text: e.target.value })}
+                                                        className="flex-[2] bg-slate-50 border-none rounded-2xl px-4 py-3 text-lg font-serif font-black text-[#2D2D2D] focus:ring-2 focus:ring-[#FFEFE6]"
+                                                        placeholder="Magic Word"
+                                                    />
+                                                    <input
+                                                        value={item.reading || ''}
+                                                        onChange={(e) => updateAggregatedItem('extractedVocabulary', i, { reading: e.target.value })}
+                                                        className="flex-1 bg-white border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black text-slate-400 text-center uppercase tracking-widest"
+                                                        placeholder="Phonetic"
+                                                    />
+                                                </div>
+                                                <div className="bg-[#FFEFE6]/40 p-4 rounded-2xl border border-[#FFEFE6]/20">
+                                                    <input
+                                                        value={item.translation || ''}
+                                                        onChange={(e) => updateAggregatedItem('extractedVocabulary', i, { translation: e.target.value })}
+                                                        className="w-full bg-transparent border-none p-0 text-sm font-black text-[#FF9E85] focus:ring-0 placeholder-[#FF9E85]/50"
+                                                        placeholder="Add Translation"
+                                                    />
+                                                </div>
                                             </div>
-                                            <input
-                                                value={item.translation || ''}
-                                                onChange={(e) => updateAggregatedItem('extractedVocabulary', i, { translation: e.target.value })}
-                                                className="w-full bg-indigo-100/50 border border-indigo-200 rounded px-2 py-1 text-xs font-bold text-indigo-700"
-                                                placeholder="번역"
-                                            />
                                             <button
                                                 onClick={() => deleteAggregatedItem('extractedVocabulary', i)}
-                                                className="absolute -top-2 -right-2 w-7 h-7 sm:w-6 sm:h-6 bg-red-500 text-white rounded-full text-[10px] shadow-lg z-10"
+                                                className="absolute -top-2 -right-2 w-7 h-7 bg-white text-rose-300 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
                                             >
-                                                <i className="fas fa-times"></i>
+                                                <i className="fas fa-times text-[10px]"></i>
                                             </button>
                                         </div>
                                     ))}
                                     {(!results.aggregatedSet?.extractedVocabulary || results.aggregatedSet.extractedVocabulary.length === 0) && (
-                                        <span className="text-slate-300 italic text-xs col-span-full text-center py-4">추출된 단어 없음</span>
+                                        <div className="col-span-full py-10 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100">
+                                            <p className="text-slate-300 font-black text-[10px] uppercase tracking-widest">No vocabulary found</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* 2. 추출 문장 */}
-                            <div className="card overflow-hidden">
-                                <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex justify-between items-center">
-                                    <h3 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-2">
-                                        <i className="fas fa-quote-left"></i>
-                                        추출 문장 ({results.aggregatedSet?.extractedSentences?.length || 0})
-                                    </h3>
+                            {/* 2. 추출 문장 (Smart Sentences) */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-[#E6FFFA] text-[#4FD1C5] flex items-center justify-center">
+                                            <i className="fas fa-quote-left text-[10px]"></i>
+                                        </div>
+                                        <h3 className="text-sm font-black text-[#2D2D2D] uppercase tracking-widest">Smart Sentences</h3>
+                                    </div>
                                     <button
                                         onClick={() => addAggregatedItem('extractedSentences')}
-                                        className="bg-white/20 hover:bg-white/40 text-white text-[10px] font-bold px-3 py-1 rounded-full transition-all"
+                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#9B87F5] transition-all"
                                     >
-                                        <i className="fas fa-plus mr-1"></i> 추가
+                                        <i className="fas fa-plus text-[10px]"></i>
                                     </button>
                                 </div>
-                                <div className="p-4 space-y-3">
+
+                                <div className="space-y-4">
                                     {results.aggregatedSet?.extractedSentences?.map((item, i) => (
-                                        <div key={i} className="bg-amber-50/50 p-4 rounded-xl border border-amber-100 hover:border-amber-300 transition-colors group relative space-y-2">
-                                            <div className="flex gap-2">
-                                                <input
+                                        <div key={i} className="card !p-8 bg-white border-2 border-slate-50 hover:border-[#E6FFFA] transition-all duration-300 group relative">
+                                            <div className="space-y-6">
+                                                <textarea
                                                     value={item.text}
                                                     onChange={(e) => updateAggregatedItem('extractedSentences', i, { text: e.target.value })}
-                                                    className="flex-1 bg-white border border-amber-100 rounded px-3 py-2 font-serif text-lg text-slate-800"
-                                                    placeholder="문장"
+                                                    className="w-full bg-transparent border-none p-0 text-xl font-serif font-black text-[#2D2D2D] focus:ring-0 resize-none h-auto min-h-[60px]"
+                                                    placeholder="Enter Magic Sentence..."
                                                 />
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    value={item.reading || ''}
-                                                    onChange={(e) => updateAggregatedItem('extractedSentences', i, { reading: e.target.value })}
-                                                    className="flex-1 bg-white border border-amber-100 rounded px-2 py-1 text-xs text-slate-400"
-                                                    placeholder="발음"
-                                                />
-                                                <input
-                                                    value={item.translation || ''}
-                                                    onChange={(e) => updateAggregatedItem('extractedSentences', i, { translation: e.target.value })}
-                                                    className="flex-1 bg-amber-100/50 border border-amber-200 rounded px-2 py-1 text-sm font-bold text-amber-700"
-                                                    placeholder="번역"
-                                                />
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <input
+                                                        value={item.reading || ''}
+                                                        onChange={(e) => updateAggregatedItem('extractedSentences', i, { reading: e.target.value })}
+                                                        className="bg-slate-50/50 border-none rounded-2xl px-5 py-3 text-xs font-bold text-slate-400 italic"
+                                                        placeholder="Phonetic reading..."
+                                                    />
+                                                    <div className="bg-[#E6FFFA]/40 px-5 py-3 rounded-2xl">
+                                                        <input
+                                                            value={item.translation || ''}
+                                                            onChange={(e) => updateAggregatedItem('extractedSentences', i, { translation: e.target.value })}
+                                                            className="w-full bg-transparent border-none p-0 text-sm font-black text-[#4FD1C5] focus:ring-0"
+                                                            placeholder="Translation..."
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                             <button
                                                 onClick={() => deleteAggregatedItem('extractedSentences', i)}
-                                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
+                                                className="absolute -top-3 -right-3 w-10 h-10 bg-white text-rose-300 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center hover:bg-rose-50"
                                             >
                                                 <i className="fas fa-times"></i>
                                             </button>
                                         </div>
                                     ))}
                                     {(!results.aggregatedSet?.extractedSentences || results.aggregatedSet.extractedSentences.length === 0) && (
-                                        <span className="text-slate-300 italic text-xs text-center block py-4">추출된 문장 없음</span>
+                                        <div className="py-10 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100">
+                                            <p className="text-slate-300 font-black text-[10px] uppercase tracking-widest">No sentences captured</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* 3. 관련 단어 (AI 추천) */}
-                            <div className="card overflow-hidden">
-                                <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex justify-between items-center">
-                                    <h3 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-2">
-                                        <i className="fas fa-magic"></i>
-                                        관련 단어 ({results.aggregatedSet?.relatedVocabulary?.length || 0}/4)
-                                    </h3>
+                            {/* 3. 관련 단어 (AI Insights: Vocabulary) */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-[#E0D7FF] text-[#9B87F5] flex items-center justify-center">
+                                            <i className="fas fa-magic text-[10px]"></i>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-sm font-black text-[#2D2D2D] uppercase tracking-widest">AI Insights</h3>
+                                            <span className="px-2 py-0.5 rounded-full bg-[#9B87F5] text-white text-[8px] font-black uppercase">Magic</span>
+                                        </div>
+                                    </div>
                                     <button
                                         onClick={() => addAggregatedItem('relatedVocabulary')}
-                                        className="bg-white/20 hover:bg-white/40 text-white text-[10px] font-bold px-3 py-1 rounded-full transition-all"
+                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#9B87F5] transition-all"
                                     >
-                                        <i className="fas fa-plus mr-1"></i> 추가
+                                        <i className="fas fa-plus text-[10px]"></i>
                                     </button>
                                 </div>
-                                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {results.aggregatedSet?.relatedVocabulary?.map((item, i) => (
-                                        <div key={i} className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 hover:border-emerald-300 transition-colors group relative space-y-2">
-                                            <div className="flex gap-2">
-                                                <input
-                                                    value={item.text}
-                                                    onChange={(e) => updateAggregatedItem('relatedVocabulary', i, { text: e.target.value })}
-                                                    className="flex-1 bg-white border border-emerald-100 rounded px-2 py-1 text-sm font-bold"
-                                                    placeholder="단어"
-                                                />
-                                                <input
-                                                    value={item.reading || ''}
-                                                    onChange={(e) => updateAggregatedItem('relatedVocabulary', i, { reading: e.target.value })}
-                                                    className="w-1/3 bg-white border border-emerald-100 rounded px-2 py-1 text-[10px]"
-                                                    placeholder="발음"
-                                                />
-                                            </div>
-                                            <input
-                                                value={item.translation || ''}
-                                                onChange={(e) => updateAggregatedItem('relatedVocabulary', i, { translation: e.target.value })}
-                                                className="w-full bg-emerald-100/50 border border-emerald-200 rounded px-2 py-1 text-xs font-bold text-emerald-600"
-                                                placeholder="번역"
-                                            />
-                                            <div className="absolute top-1 left-1">
-                                                <span className="text-[8px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full">AI</span>
+                                        <div key={i} className="card !p-6 bg-[#F8F9FF] border-none hover:shadow-xl transition-all duration-300 group relative">
+                                            <div className="flex flex-col gap-4">
+                                                <div className="flex gap-3">
+                                                    <input
+                                                        value={item.text}
+                                                        onChange={(e) => updateAggregatedItem('relatedVocabulary', i, { text: e.target.value })}
+                                                        className="flex-[2] bg-white border-none rounded-2xl px-4 py-3 text-lg font-serif font-black text-[#2D2D2D] focus:ring-2 focus:ring-[#E0D7FF]"
+                                                        placeholder="AI Word"
+                                                    />
+                                                    <input
+                                                        value={item.reading || ''}
+                                                        onChange={(e) => updateAggregatedItem('relatedVocabulary', i, { reading: e.target.value })}
+                                                        className="flex-1 bg-white border border-slate-50 rounded-2xl px-4 py-3 text-[10px] font-black text-slate-400 text-center uppercase tracking-widest"
+                                                        placeholder="AI Phonetic"
+                                                    />
+                                                </div>
+                                                <div className="bg-white/60 p-4 rounded-2xl border border-white">
+                                                    <input
+                                                        value={item.translation || ''}
+                                                        onChange={(e) => updateAggregatedItem('relatedVocabulary', i, { translation: e.target.value })}
+                                                        className="w-full bg-transparent border-none p-0 text-sm font-black text-[#9B87F5] focus:ring-0 placeholder-[#9B87F5]/50"
+                                                        placeholder="Add Translation"
+                                                    />
+                                                </div>
                                             </div>
                                             <button
                                                 onClick={() => deleteAggregatedItem('relatedVocabulary', i)}
-                                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
+                                                className="absolute -top-2 -right-2 w-7 h-7 bg-white text-rose-300 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
                                             >
-                                                <i className="fas fa-times"></i>
+                                                <i className="fas fa-times text-[10px]"></i>
                                             </button>
                                         </div>
                                     ))}
                                     {(!results.aggregatedSet?.relatedVocabulary || results.aggregatedSet.relatedVocabulary.length === 0) && (
-                                        <span className="text-slate-300 italic text-xs col-span-full text-center py-4">AI 추천 단어 없음</span>
+                                        <div className="col-span-full py-10 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100">
+                                            <p className="text-slate-300 font-black text-[10px] uppercase tracking-widest">No related words suggested</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* 4. 관련 문장 (AI 추천) */}
-                            <div className="card overflow-hidden">
-                                <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-6 py-4 flex justify-between items-center">
-                                    <h3 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-2">
-                                        <i className="fas fa-lightbulb"></i>
-                                        관련 문장 ({results.aggregatedSet?.relatedSentences?.length || 0})
-                                    </h3>
+                            {/* 4. 관련 문장 (AI Lessons: Sentences) */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-[#FFE2E2] text-[#FF8585] flex items-center justify-center">
+                                            <i className="fas fa-lightbulb text-[10px]"></i>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-sm font-black text-[#2D2D2D] uppercase tracking-widest">AI Lessons</h3>
+                                            <span className="px-2 py-0.5 rounded-full bg-[#FF8585] text-white text-[8px] font-black uppercase">Dynamic</span>
+                                        </div>
+                                    </div>
                                     <button
                                         onClick={() => addAggregatedItem('relatedSentences')}
-                                        className="bg-white/20 hover:bg-white/40 text-white text-[10px] font-bold px-3 py-1 rounded-full transition-all"
+                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#9B87F5] transition-all"
                                     >
-                                        <i className="fas fa-plus mr-1"></i> 추가
+                                        <i className="fas fa-plus text-[10px]"></i>
                                     </button>
                                 </div>
-                                <div className="p-4 space-y-3">
+
+                                <div className="space-y-4">
                                     {results.aggregatedSet?.relatedSentences?.map((item, i) => (
-                                        <div key={i} className="bg-pink-50/50 p-4 rounded-xl border border-pink-100 hover:border-pink-300 transition-colors group relative space-y-2">
-                                            <div className="flex gap-2 pl-8">
-                                                <input
+                                        <div key={i} className="card !p-8 bg-white border-2 border-slate-50 hover:border-[#FFE2E2] transition-all duration-300 group relative">
+                                            <div className="space-y-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="px-2 py-1 rounded bg-[#FFE2E2] text-[#FF8585] text-[8px] font-black uppercase tracking-widest leading-none">AI Suggestion</div>
+                                                </div>
+                                                <textarea
                                                     value={item.text}
                                                     onChange={(e) => updateAggregatedItem('relatedSentences', i, { text: e.target.value })}
-                                                    className="flex-1 bg-white border border-pink-100 rounded px-3 py-2 font-serif text-lg text-slate-800"
-                                                    placeholder="문장"
+                                                    className="w-full bg-transparent border-none p-0 text-xl font-serif font-black text-[#2D2D2D] focus:ring-0 resize-none h-auto min-h-[60px]"
+                                                    placeholder="AI Generated Sentence..."
                                                 />
-                                            </div>
-                                            <div className="flex gap-2 pl-8">
-                                                <input
-                                                    value={item.reading || ''}
-                                                    onChange={(e) => updateAggregatedItem('relatedSentences', i, { reading: e.target.value })}
-                                                    className="flex-1 bg-white border border-pink-100 rounded px-2 py-1 text-xs text-slate-400"
-                                                    placeholder="발음"
-                                                />
-                                                <input
-                                                    value={item.translation || ''}
-                                                    onChange={(e) => updateAggregatedItem('relatedSentences', i, { translation: e.target.value })}
-                                                    className="flex-1 bg-pink-100/50 border border-pink-200 rounded px-2 py-1 text-sm font-bold text-pink-700"
-                                                    placeholder="번역"
-                                                />
-                                            </div>
-                                            <div className="absolute top-2 left-2">
-                                                <span className="text-[8px] bg-pink-500 text-white px-1.5 py-0.5 rounded-full">AI</span>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <input
+                                                        value={item.reading || ''}
+                                                        onChange={(e) => updateAggregatedItem('relatedSentences', i, { reading: e.target.value })}
+                                                        className="bg-slate-50/50 border-none rounded-2xl px-5 py-3 text-xs font-bold text-slate-400 italic"
+                                                        placeholder="How to read this?"
+                                                    />
+                                                    <div className="bg-[#FFE2E2]/40 px-5 py-3 rounded-2xl">
+                                                        <input
+                                                            value={item.translation || ''}
+                                                            onChange={(e) => updateAggregatedItem('relatedSentences', i, { translation: e.target.value })}
+                                                            className="w-full bg-transparent border-none p-0 text-sm font-black text-[#FF8585] focus:ring-0"
+                                                            placeholder="Meaning..."
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                             <button
                                                 onClick={() => deleteAggregatedItem('relatedSentences', i)}
-                                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
+                                                className="absolute -top-3 -right-3 w-10 h-10 bg-white text-rose-300 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center hover:bg-rose-50"
                                             >
                                                 <i className="fas fa-times"></i>
                                             </button>
                                         </div>
                                     ))}
                                     {(!results.aggregatedSet?.relatedSentences || results.aggregatedSet.relatedSentences.length === 0) && (
-                                        <span className="text-slate-300 italic text-xs text-center block py-4">AI 추천 문장 없음</span>
+                                        <div className="py-10 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100">
+                                            <p className="text-slate-300 font-black text-[10px] uppercase tracking-widest">No related sentences at the moment</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -1596,15 +1634,21 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                         </div>
                     )}
 
-                    {/* 하단 액션 */}
-                    <div className="flex justify-between items-center pt-6 border-t border-slate-100">
-                        <button onClick={handleReset} className="btn-secondary">
-                            <i className="fas fa-redo mr-2"></i>
-                            새로운 파일 처리
+                    {/* 하단 액션 (Floating Magic Bar Concept) */}
+                    <div className="flex gap-4 pt-10 mt-10 border-t border-slate-50">
+                        <button
+                            onClick={handleReset}
+                            className="flex-1 h-16 rounded-[2rem] bg-white text-slate-400 font-black text-xs uppercase tracking-widest shadow-lg hover:text-[#FF9E85] transition-all"
+                        >
+                            <i className="fas fa-redo-alt mr-3"></i>
+                            Start Over
                         </button>
-                        <button onClick={handleProceed} className="btn-success">
-                            결과 확정 & 다음 단계
-                            <i className="fas fa-arrow-right ml-2"></i>
+                        <button
+                            onClick={handleProceed}
+                            className="btn-primary flex-[2] !h-16 !from-[#9B87F5] !to-[#8170FF] !rounded-[2rem] !text-sm"
+                        >
+                            <span>Confirm & Continue</span>
+                            <i className="fas fa-magic ml-3"></i>
                         </button>
                     </div>
                 </div>

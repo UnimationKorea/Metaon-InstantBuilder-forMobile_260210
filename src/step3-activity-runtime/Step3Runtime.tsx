@@ -19,6 +19,7 @@ import {
     stateManager,
     fetchPageContent
 } from '@/shared';
+import { ActivityRenderer } from './ActivityRenderer';
 
 interface Step3RuntimeProps {
     sessionData: Step2Session | null;
@@ -167,13 +168,27 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
 
     // 액티비티 종료
     const stopActivity = useCallback(() => {
-        setActiveInstance(prev => prev ? {
-            ...prev,
-            state: { ...prev.state, status: 'completed', progress: 100 }
-        } : null);
         setIsRunning(false);
         setPreviewMode(false);
+        setActiveInstance(null);
     }, []);
+
+    // 액티비티 완료 핸들러
+    const handleActivityComplete = useCallback((score: number) => {
+        console.log(`[Step3] Activity completed with score: ${score}`);
+
+        // 인스턴스 상태 업데이트
+        setActiveInstance(prev => prev ? {
+            ...prev,
+            state: { status: 'completed', progress: 100, score }
+        } : null);
+
+        // 성공 모달 표시 (또는 자동 종료)
+        setTimeout(() => {
+            alert(`축하합니다! ${score}점으로 액티비티를 완료했습니다.`);
+            stopActivity();
+        }, 500);
+    }, [stopActivity]);
 
 
     // [추가] 임시 DB 저장 (Supabase edu_page_data 연동)
@@ -216,7 +231,8 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
             'handwriting': 'fa-pen-nib',
             'flashcard': 'fa-clone',
             'drag_drop': 'fa-hand-pointer',
-            'metaverse_explore': 'fa-vr-cardboard'
+            'metaverse_explore': 'fa-vr-cardboard',
+            'line_matching': 'fa-bezier-curve'
         };
         return icons[type] || 'fa-gamepad';
     };
@@ -224,56 +240,67 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
     // 액티비티 컬러 렌더링
     const getActivityColor = (type: ActivityType): string => {
         const colors: Record<ActivityType, string> = {
-            'quiz_multiple': 'from-indigo-500 to-purple-600',
-            'quiz_fill_blank': 'from-blue-500 to-cyan-600',
-            'matching_game': 'from-amber-500 to-orange-600',
-            'voice_recognition': 'from-pink-500 to-rose-600',
-            'handwriting': 'from-emerald-500 to-teal-600',
-            'flashcard': 'from-violet-500 to-fuchsia-600',
-            'drag_drop': 'from-lime-500 to-green-600',
-            'metaverse_explore': 'from-cyan-500 to-blue-600'
+            'quiz_multiple': 'from-[#9B87F5] to-[#8170FF]',
+            'quiz_fill_blank': 'from-[#4FD1C5] to-[#38B2AC]',
+            'matching_game': 'from-[#FFD166] to-[#F6AD55]',
+            'voice_recognition': 'from-[#FF8585] to-[#F56565]',
+            'handwriting': 'from-[#B2A4FF] to-[#8E7AB5]',
+            'flashcard': 'from-[#FFB4B4] to-[#FF8E8E]',
+            'drag_drop': 'from-[#A0E9FF] to-[#00A9FF]',
+            'metaverse_explore': 'from-[#2D2D2D] to-[#1a1a1a]',
+            'line_matching': 'from-[#6366f1] to-[#4f46e5]'
         };
-        return colors[type] || 'from-slate-500 to-slate-600';
+        return colors[type] || 'from-slate-400 to-slate-500';
     };
 
     return (
         <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
 
 
-            {/* 세션 정보 */}
-            <div className={cn("card p-4 sm:p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-100 transition-opacity duration-300", isLoadingPageData && "opacity-50")}>
-                {isLoadingPageData && (
-                    <div className="absolute inset-0 flex items-center justify-center z-10">
-                        <div className="spinner"></div>
-                    </div>
-                )}
-                <div className="flex items-center justify-between relative">
-                    <div className="flex items-center gap-3 sm:gap-6">
-                        <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-200">
-                            <i className="fas fa-database text-lg sm:text-2xl text-white"></i>
+            {/* Active Roadmap (Session Info) */}
+            <div className={cn(
+                "card !p-10 border-none bg-white relative overflow-hidden group transition-all duration-500",
+                isLoadingPageData && "opacity-50"
+            )}>
+                {/* Background Decor */}
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#F8F9FF] rounded-full blur-3xl group-hover:bg-[#E0D7FF]/40 transition-colors duration-700"></div>
+
+                <div className="relative flex flex-col md:flex-row items-center justify-between gap-10">
+                    <div className="flex items-center gap-8">
+                        <div className="w-20 h-20 rounded-[2.5rem] bg-[#2D2D2D] flex items-center justify-center shadow-2xl rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                            <i className="fas fa-map-marked-alt text-2xl text-[#9B87F5]"></i>
                         </div>
-                        <div>
-                            <h3 className="text-base sm:text-xl font-black text-slate-800 mb-0.5 sm:mb-1">세션 데이터</h3>
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-slate-500">
-                                <span><i className="fas fa-book mr-1 text-indigo-400"></i> {hierarchy.subject}</span>
-                                <span><i className="fas fa-layer-group mr-1 text-purple-400"></i> {hierarchy.level}</span>
-                                <span className="hidden sm:inline"><i className="fas fa-folder mr-1 text-emerald-400"></i> {hierarchy.set}</span>
-                                <span className="hidden sm:inline"><i className="fas fa-file-alt mr-1 text-amber-400"></i> {hierarchy.page}</span>
+                        <div className="space-y-2">
+                            <h3 className="text-3xl font-serif font-black text-[#2D2D2D] italic">Active Roadmap</h3>
+                            <div className="flex flex-wrap items-center gap-4">
+                                <span className="px-4 py-1.5 rounded-full bg-[#F8F9FF] text-[10px] font-black text-[#8170FF] uppercase tracking-widest border border-[#E0D7FF]/30">
+                                    {hierarchy.subject}
+                                </span>
+                                <span className="px-4 py-1.5 rounded-full bg-[#F8F9FF] text-[10px] font-black text-slate-400 uppercase tracking-widest border border-slate-100">
+                                    Level {hierarchy.level}
+                                </span>
+                                <div className="flex items-center gap-2 opacity-30">
+                                    <i className="fas fa-location-arrow text-[10px]"></i>
+                                    <span className="text-[10px] font-black">SET {hierarchy.set} • PAGE {hierarchy.page}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 sm:gap-8 text-center">
-                        <div>
-                            <p className="text-xl sm:text-3xl font-black text-indigo-600">{currentStacks.length}</p>
-                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 sm:mt-1">스택</p>
+
+                    <div className="flex items-center gap-12 bg-[#F8F9FF]/50 p-8 rounded-[3rem] border border-white">
+                        <div className="text-center space-y-1">
+                            <p className="text-4xl font-serif font-black text-[#2D2D2D]">{currentStacks.length}</p>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Stacks</p>
                         </div>
-                        <div>
-                            <p className="text-xl sm:text-3xl font-black text-emerald-600">{availableData.length}</p>
-                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 sm:mt-1">데이터</p>
+                        <div className="w-px h-10 bg-slate-200/50"></div>
+                        <div className="text-center space-y-1">
+                            <p className="text-4xl font-serif font-black text-[#9B87F5]">{availableData.length}</p>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Assets</p>
                         </div>
-                        <div>
-                            <p className="text-xl sm:text-3xl font-black text-amber-600">{selectedActivities.length}</p>
-                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 sm:mt-1">액티비티</p>
+                        <div className="w-px h-10 bg-slate-200/50"></div>
+                        <div className="text-center space-y-1">
+                            <p className="text-4xl font-serif font-black text-[#FF9E85]">{selectedActivities.length}</p>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Activities</p>
                         </div>
                     </div>
                 </div>
@@ -294,50 +321,47 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {selectedActivities.map((activity, idx) => (
-                                <div key={activity.id} className="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
-                                    <div className={cn(
-                                        'w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-white font-bold text-lg',
-                                        getActivityColor(activity.type)
-                                    )}>
-                                        {idx + 1}
+                            {selectedActivities.map((activity) => (
+                                <div key={activity.id} className="card !p-8 bg-white border-none hover:shadow-2xl hover:shadow-[#E0D7FF]/20 transition-all duration-300 flex items-center gap-8 group">
+                                    <div className="w-16 h-16 rounded-[1.75rem] bg-[#F8F9FF] flex items-center justify-center text-[#2D2D2D] shadow-inner border border-slate-50 group-hover:scale-110 transition-transform duration-500">
+                                        <i className={cn("fas text-xl", getActivityIcon(activity.type), "text-[#9B87F5]")}></i>
                                     </div>
 
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-slate-900">{activity.title}</h4>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-xs px-2 py-0.5 bg-slate-100 rounded text-slate-500 font-medium">
-                                                {currentStacks.find(s => s.id === activity.id)?.items.length || 0} items
+                                    <div className="flex-1 space-y-1">
+                                        <h4 className="text-xl font-serif font-black text-[#2D2D2D]">{activity.title}</h4>
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <i className="fas fa-cubes"></i>
+                                                {currentStacks.find(s => s.id === activity.id)?.items.length || 0} Assets
                                             </span>
-                                            <span className="text-xs text-slate-300">|</span>
-                                            <span className="text-xs text-slate-400 font-medium uppercase">{activity.type.replace(/_/g, ' ')}</span>
+                                            <div className="w-1 h-1 rounded-full bg-slate-200"></div>
+                                            <span className="text-[10px] font-black text-[#9B87F5] uppercase tracking-widest">{activity.type.replace(/_/g, ' ')}</span>
                                         </div>
                                     </div>
 
-                                    {/* 설정 */}
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex flex-col items-end mr-4">
-                                            <label className="text-[10px] font-bold text-slate-400 mb-0.5">난이도</label>
+                                    {/* Settings & Final Test */}
+                                    <div className="flex items-center gap-6">
+                                        <div className="flex flex-col items-end">
+                                            <label className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Difficulty</label>
                                             <select
                                                 value={activity.difficultyLevel}
                                                 onChange={(e) => updateActivity(activity.id, {
                                                     difficultyLevel: parseInt(e.target.value) as 1 | 2 | 3
                                                 })}
-                                                className="text-xs bg-slate-50 rounded-lg px-2 py-1 border border-slate-200 outline-none font-bold text-slate-600 focus:border-indigo-500 transition-colors"
+                                                className="text-[10px] bg-[#F8F9FF] rounded-xl px-4 py-2 border border-slate-50 outline-none font-black text-slate-600 focus:ring-2 focus:ring-[#E0D7FF] transition-all cursor-pointer"
                                             >
-                                                <option value={1}>쉬움</option>
-                                                <option value={2}>보통</option>
-                                                <option value={3}>어려움</option>
+                                                <option value={1}>Gentle</option>
+                                                <option value={2}>Standard</option>
+                                                <option value={3}>Intense</option>
                                             </select>
                                         </div>
 
                                         <button
                                             onClick={() => runActivity(activity)}
-                                            className="tooltip px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-100 hover:text-indigo-700 transition-colors flex items-center gap-2"
-                                            data-tooltip="이 액티비티를 샌드박스에서 미리봅니다"
+                                            className="h-16 px-8 rounded-[2rem] bg-[#2D2D2D] text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:scale-[1.05] active:scale-[0.95] transition-all flex items-center gap-3"
                                         >
-                                            <i className="fas fa-play"></i>
-                                            테스트
+                                            <i className="fas fa-play text-[#9B87F5]"></i>
+                                            Test Runtime
                                         </button>
                                     </div>
                                 </div>
@@ -347,75 +371,45 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
 
                     {/* 미리보기 / 샌드박스 */}
                     {previewMode && activeInstance && (
-                        <div className="card overflow-hidden">
-                            <div className="bg-slate-900 px-4 py-3 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex gap-1.5">
-                                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                                        <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                                        <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                        <div className="space-y-0">
+                            {/* Preview Header (Magic Terminal Style) */}
+                            <div className="bg-[#2D2D2D] p-6 flex items-center justify-between border-b border-white/5 rounded-t-[2.5rem]">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-[#FF8585]"></div>
+                                        <div className="w-3 h-3 rounded-full bg-[#FFD166]"></div>
+                                        <div className="w-3 h-3 rounded-full bg-[#4FD1C5]"></div>
                                     </div>
-                                    <span className="text-white/70 text-xs font-bold">
-                                        Sandbox: {activeInstance.config.title}
-                                    </span>
+                                    <div className="h-4 w-px bg-white/10 mx-2"></div>
+                                    <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] flex items-center gap-3">
+                                        <i className="fas fa-terminal"></i>
+                                        Magic Studio Sandbox
+                                    </p>
                                 </div>
                                 <button
                                     onClick={stopActivity}
-                                    className="text-white/50 hover:text-white text-xs font-bold"
+                                    className="text-white/40 hover:text-white transition-all"
                                 >
-                                    <i className="fas fa-times mr-1"></i>
-                                    닫기
+                                    <i className="fas fa-times"></i>
                                 </button>
                             </div>
 
-                            <div className="sandbox-frame bg-slate-100 h-[400px] flex items-center justify-center">
+                            <div className="relative min-h-[500px] flex flex-col bg-[#F8F9FF] border-x border-b border-slate-100 rounded-b-[2.5rem] overflow-hidden">
                                 {activeInstance.state.status === 'loading' ? (
-                                    <div className="flex flex-col items-center gap-4">
-                                        <div className="spinner"></div>
-                                        <p className="text-slate-400 font-bold text-sm">샌드박스 로딩 중...</p>
+                                    <div className="flex-1 flex flex-col items-center justify-center p-20 text-center">
+                                        <div className="spinner !w-16 !h-16 !border-t-[#9B87F5]"></div>
+                                        <p className="mt-8 text-slate-400 font-black text-[10px] uppercase tracking-widest">Warming up the studio...</p>
                                     </div>
                                 ) : (
-                                    <div className="text-center p-8">
-                                        <div className={cn(
-                                            'w-24 h-24 rounded-3xl bg-gradient-to-br flex items-center justify-center text-white mx-auto mb-6 shadow-2xl',
-                                            getActivityColor(activeInstance.config.type)
-                                        )}>
-                                            <i className={`fas ${getActivityIcon(activeInstance.config.type)} text-4xl`}></i>
+                                    <div className="flex-1 flex flex-col p-4 sm:p-8">
+                                        <div className="w-full h-full bg-white rounded-2xl overflow-hidden shadow-inner border border-slate-200">
+                                            <ActivityRenderer
+                                                activityType={activeInstance.config.type}
+                                                config={activeInstance.config}
+                                                data={activeInstance.data}
+                                                onComplete={handleActivityComplete}
+                                            />
                                         </div>
-                                        <h3 className="text-2xl font-black text-slate-800 mb-2">
-                                            {activeInstance.config.title}
-                                        </h3>
-                                        <p className="text-slate-500 font-medium mb-6">
-                                            {availableData.length}개의 학습 데이터 준비됨
-                                        </p>
-
-                                        {/* 샘플 데이터 미리보기 */}
-                                        <div className="bg-white rounded-2xl p-4 max-w-md mx-auto border border-slate-200">
-                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                                                데이터 샘플
-                                            </h4>
-                                            <div className="space-y-2">
-                                                {availableData.slice(0, 3).map((item, i) => (
-                                                    <div key={i} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                                                        <span className="font-bold text-slate-700">{item.text}</span>
-                                                        <span className="text-sm text-slate-400">{item.translation}</span>
-                                                    </div>
-                                                ))}
-                                                {availableData.length > 3 && (
-                                                    <p className="text-xs text-slate-300 text-center pt-2">
-                                                        +{availableData.length - 3}개 더...
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            onClick={stopActivity}
-                                            className="btn-success mt-6"
-                                        >
-                                            <i className="fas fa-check mr-2"></i>
-                                            미리보기 완료
-                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -424,19 +418,31 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
                 </div>
             </div>
 
-            <div className="flex justify-center pt-4">
+            {/* Bottom Action (Magic Bar) */}
+            <div className="flex gap-4 pt-10 border-t border-slate-100 mt-10">
+                <button
+                    onClick={() => setPreviewMode(!previewMode)}
+                    className="flex-1 h-16 rounded-[2rem] bg-white text-slate-400 font-black text-xs uppercase tracking-widest shadow-lg hover:text-[#9B87F5] transition-all flex items-center justify-center gap-3"
+                >
+                    <i className={cn("fas", previewMode ? "fa-eye-slash" : "fa-eye")}></i>
+                    {previewMode ? "Hide Insights" : "Show Insights"}
+                </button>
                 <button
                     onClick={handleTempDBSave}
                     disabled={tempSyncStatus === 'syncing'}
-                    className={cn(
-                        "px-12 py-4 rounded-3xl font-black text-lg flex items-center justify-center gap-3 transition-all",
-                        tempSyncStatus === 'synced'
-                            ? "bg-emerald-500 text-white shadow-emerald-200"
-                            : "bg-white text-indigo-600 border-4 border-indigo-600 shadow-xl hover:bg-indigo-50"
-                    )}
+                    className="btn-primary flex-[2] !h-16 !from-[#2D2D2D] !to-[#1a1a1a] !rounded-[2rem] !text-xs !font-black !uppercase !tracking-[0.2em]"
                 >
-                    <i className={cn("fas", tempSyncStatus === 'syncing' ? "fa-spinner fa-spin" : tempSyncStatus === 'synced' ? "fa-check-circle" : "fa-database")}></i>
-                    {tempSyncStatus === 'synced' ? "임시 DB 저장됨" : "임시 DB 저장"}
+                    {tempSyncStatus === 'syncing' ? (
+                        <>
+                            <i className="fas fa-spinner fa-spin mr-3"></i>
+                            Syncing...
+                        </>
+                    ) : (
+                        <>
+                            <span>Finalize & Sync DB</span>
+                            <i className="fas fa-cloud-upload-alt ml-3 text-[#9B87F5]"></i>
+                        </>
+                    )}
                 </button>
             </div>
         </div>

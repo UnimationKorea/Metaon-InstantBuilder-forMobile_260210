@@ -198,3 +198,16 @@ export const saveAppState = async () => {
         return { error: err };
     }
 };
+
+/**
+ * 전역 설정값 조회 (Gemini API Key 등)
+ */
+export const fetchGlobalConfig = async (key: string) => {
+    const { data, error } = await supabase
+        .from('edu_system_config')
+        .select('value')
+        .eq('key', key)
+        .maybeSingle();
+
+    return { data: data?.value || null, error };
+};

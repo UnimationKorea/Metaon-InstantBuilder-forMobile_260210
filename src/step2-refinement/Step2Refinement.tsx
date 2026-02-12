@@ -25,7 +25,8 @@ import {
     cn,
     stateManager,
     savePageContent,
-    fetchStorageMap
+    fetchStorageMap,
+    fetchGlobalConfig
 } from '@/shared';
 
 interface Step2RefinementProps {
@@ -33,7 +34,6 @@ interface Step2RefinementProps {
     workingSession?: Step2Session | null;
     onComplete: (data: Step2Session) => void;
     onUpdate?: (data: Step2Session) => void;
-    engineModel?: string;
     geminiApiKey?: string;
     classificationConfig?: ClassificationConfig;
     onDirtyChange?: (dirty: boolean) => void;
@@ -44,7 +44,6 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
     workingSession,
     onComplete,
     onUpdate,
-    engineModel = 'gemini-2.0-flash-exp',
     geminiApiKey,
     classificationConfig = DEFAULT_CLASSIFICATION,
     onDirtyChange
@@ -271,24 +270,41 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
         text: ''
     });
 
-    // 음성 생성 모달 (확장된 옵션)
-    const [voiceModal, setVoiceModal] = useState<{
-        show: boolean;
-        id: string;
-        text: string;
-        voice: 'female' | 'male';
-        speed: number;
-        pitch: number;
-        lang: string;
-    }>({
-        show: false,
-        id: '',
-        text: '',
-        voice: 'female',
-        speed: 1.0,
-        pitch: 1.0,
-        lang: 'en-US'
-    });
+    // AI 음색 설정 관리 (활성화된 하단 패널 ID)
+    const [activeVoiceId, setActiveVoiceId] = useState<string | null>(null);
+
+    // [변경] voiceModal 상태 제거 (ResourceData 내부 voiceSettings 사용)
+
+    // [추가] 스택 클립보드 (아이템 재사용용)
+    const [stackClipboard, setStackClipboard] = useState<ResourceData[]>([]);
+
+    const copyStackItems = (items: ResourceData[]) => {
+        setStackClipboard(items);
+        // 간단한 알림 (Toast UI가 없으므로)
+    };
+
+    const pasteStackItems = (stackId: string) => {
+        if (stackClipboard.length === 0) return;
+
+        const newItems = stackClipboard.map(item => ({
+            ...item,
+            id: generateId() // 고유 ID 새로 생성
+        }));
+
+        setPageStacks(prev => prev.map(s =>
+            s.id === stackId ? { ...s, items: [...s.items, ...newItems] } : s
+        ));
+    };
+
+    const duplicateStack = (stack: StackData) => {
+        const newStack: StackData = {
+            ...stack,
+            id: generateId(),
+            index: pageStacks.length + 1,
+            items: stack.items.map(item => ({ ...item, id: generateId() }))
+        };
+        setPageStacks(prev => [...prev, newStack]);
+    };
 
     // [CMS 추가] 저장된 페이지 맵 상태
     const [storageMap, setStorageMap] = useState<any[]>([]);
@@ -438,9 +454,19 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
     const generateImageAI = async (id: string, customPrompt: string) => {
         setLoadingId(id);
         try {
-            const apiKey = geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyB2P8I8qiGOKwxov4JVlLoDOnbMpTuiae0';
+            let apiKey = geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
+
             if (!apiKey) {
-                throw new Error('API Key가 설정되지 않았습니다. 설정에서 API Key를 입력해주세요.');
+                const { data: remoteKey } = await fetchGlobalConfig('gemini_api_key');
+                if (remoteKey) apiKey = remoteKey;
+            }
+
+            if (!apiKey) {
+                apiKey = 'AIzaSyB2P8I8qiGOKwxov4JVlLoDOnbMpTuiae0';
+            }
+
+            if (!apiKey) {
+                throw new Error('API Key가 설정되지 않았습니다. 설정이나 DB에서 API Key를 확인해주세요.');
             }
             const ai = new GoogleGenAI({ apiKey });
             const response = await ai.models.generateImages({
@@ -467,29 +493,54 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
 
     // 언어 자동 감지 헬퍼
     const detectLang = (text: string): string => {
-        if (/[\u4e00-\u9fa5]/.test(text)) return 'zh-CN';
+        // [변경] 일본어 감지 우선순위 상향 (한자가 중국어로 오인되는 것 방지)
         if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return 'ja-JP';
+        if (/[\u4e00-\u9fa5]/.test(text)) return 'zh-CN';
         if (/[가-힣]/.test(text)) return 'ko-KR';
         return 'en-US';
     };
 
-    // 음성 생성 모달 열기
-    const openVoiceModal = (id: string) => {
+    // 음성 설정 패널 토글 및 초기화
+    const toggleVoiceStudio = (id: string) => {
+        if (activeVoiceId === id) {
+            setActiveVoiceId(null);
+            return;
+        }
+
         const resource = commonResources.find(r => r.id === id);
         if (!resource?.text) {
             alert('텍스트를 먼저 입력해주세요.');
             return;
         }
-        const detectedLang = detectLang(resource.text);
-        setVoiceModal({
-            show: true,
-            id,
-            text: resource.text,
-            voice: 'female',
-            speed: 1.0,
-            pitch: 1.0,
-            lang: detectedLang
+
+        // 이미 설정이 있으면 패널만 열기
+        if (resource.voiceSettings) {
+            setActiveVoiceId(id);
+            return;
+        }
+
+        // 초기 설정 생성 (과목 기반 언어 맵 작성 - 소문자로 통일하여 비교)
+        const subKey = hierarchy.subject.toLowerCase();
+        const subjectLangMap: Record<string, string> = {
+            'hanja': 'ko-KR',
+            'chinese': 'zh-CN',
+            'japanese': 'ja-JP',
+            'english': 'en-US',
+            'korean': 'ko-KR'
+        };
+
+        // 1순위: 선택된 과목 기반 언어, 2순위: 텍스트 기반 자동 감지, 3순위: 한국어(Default)
+        const initialLang = subjectLangMap[subKey] || (resource.text ? detectLang(resource.text) : 'ko-KR');
+
+        updateCommonResource(id, {
+            voiceSettings: {
+                lang: initialLang,
+                voice: 'female',
+                speed: 1.0,
+                pitch: 1.0
+            }
         });
+        setActiveVoiceId(id);
     };
 
     // 최적의 목소리 선택 (언어 및 성별 기준)
@@ -522,12 +573,13 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
         return gender === 'female' ? langVoices[0] : (langVoices[1] || langVoices[0]);
     };
 
-    const generateAudioTTS = async () => {
-        const { id, text, voice, speed, pitch, lang } = voiceModal;
-        if (!text) return;
+    const generateAudioTTS = async (id: string) => {
+        const resource = commonResources.find(r => r.id === id);
+        if (!resource || !resource.text || !resource.voiceSettings) return;
 
+        const { voice, speed, pitch, lang } = resource.voiceSettings;
         setLoadingId(id);
-        const processedText = processFuriganaForTTS(text);
+        const processedText = processFuriganaForTTS(resource.text);
 
         try {
             const utterance = new SpeechSynthesisUtterance(processedText);
@@ -549,6 +601,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                 const blob = new Blob(chunks, { type: 'audio/webm' });
                 const url = URL.createObjectURL(blob);
                 updateCommonResource(id, { audioUrl: url, aiGenerated: true });
+                setActiveVoiceId(null); // 생성 완료 후 패널 닫기 (사용자 요청: 디폴트로 생성 기능 보완)
             };
 
             mediaRecorder.start();
@@ -577,11 +630,14 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
     };
 
     // 음성 미리듣기
-    const previewAudioTTS = () => {
-        const { text, voice, speed, pitch, lang } = voiceModal;
-        if (!text) return;
+    const previewAudioTTS = (id: string) => {
+        const resource = commonResources.find(r => r.id === id);
+        if (!resource || !resource.text || !resource.voiceSettings) return;
+
+        const { voice, speed, pitch, lang } = resource.voiceSettings;
         speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
+        const processedText = processFuriganaForTTS(resource.text);
+        const utterance = new SpeechSynthesisUtterance(processedText);
         const bestVoice = selectBestVoice(lang, voice);
         if (bestVoice) utterance.voice = bestVoice;
         utterance.rate = speed;
@@ -597,8 +653,20 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
 
         setLoadingId(id);
         try {
-            const apiKey = geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyB2P8I8qiGOKwxov4JVlLoDOnbMpTuiae0';
-            if (!apiKey) throw new Error('API Key가 필요합니다.');
+            let apiKey = geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
+
+            if (!apiKey) {
+                const { data: remoteKey } = await fetchGlobalConfig('gemini_api_key');
+                if (remoteKey) apiKey = remoteKey;
+            }
+
+            if (!apiKey) {
+                apiKey = 'AIzaSyB2P8I8qiGOKwxov4JVlLoDOnbMpTuiae0';
+            }
+
+            if (!apiKey) {
+                throw new Error('API Key가 설정되지 않았습니다. 설정이나 DB에서 API Key를 확인해주세요.');
+            }
             const ai = new GoogleGenAI({ apiKey });
             const prompt = `
         언어 교육 전문가로서 텍스트와 발음을 슬래시('/')를 사용하여 논리적 단위로 분절해주세요.
@@ -609,7 +677,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
       `;
 
             const response = await ai.models.generateContent({
-                model: engineModel || 'gemini-2.5-flash',
+                model: 'models/gemini-1.5-flash',
                 contents: prompt,
                 config: { responseMimeType: 'application/json' }
             });
@@ -752,76 +820,82 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
         <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
             {/* 헤더 - 액션 버튼 (포털을 통해 상단 헤더로 이동) */}
             {createPortal(
-                <div className="flex items-center gap-1 sm:gap-3">
+                <div className="flex items-center gap-4">
                     <button
                         onClick={handleTempDBSave}
                         disabled={isSyncing}
                         className={cn(
-                            "flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all shadow-lg",
-                            isSyncing
-                                ? "bg-slate-100 text-slate-400 cursor-wait"
-                                : "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]"
+                            "h-12 px-6 rounded-[1.5rem] bg-white text-slate-400 font-black text-xs uppercase tracking-widest shadow-sm hover:text-[#9B87F5] transition-all flex items-center gap-3",
+                            isSyncing && "opacity-50 cursor-wait"
                         )}
                         title="저장"
                     >
-                        <i className={cn("fas", isSyncing ? "fa-spinner fa-spin" : "fa-database")}></i>
-                        {isSyncing ? "저장 중..." : "저장"}
+                        <i className={cn("fas", isSyncing ? "fa-spinner fa-spin" : "fa-cloud-upload-alt")}></i>
+                        {isSyncing ? "Saving..." : "Save Progress"}
                     </button>
-                    <button onClick={handleProceed} className="btn-success flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-3">
-                        <i className="fas fa-check"></i>
-                        다음
+                    <button
+                        onClick={handleProceed}
+                        className="h-12 px-10 rounded-[1.5rem] bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-[1.05] active:scale-[0.95] transition-all flex items-center justify-center gap-3"
+                    >
+                        <span>Analyze & Finish</span>
+                        <i className="fas fa-magic text-[#9B87F5]"></i>
                     </button>
                 </div>,
                 document.getElementById('step2-header-actions')!
             )}
 
-            {/* 뷰 모드 탭 */}
-            <div className="flex bg-slate-100 p-1 rounded-xl sm:rounded-2xl w-full sm:w-fit">
+            {/* 뷰 모드 탭 (Tiimo Styled Navigation) */}
+            <div className="flex bg-[#F8F9FF] p-2 rounded-[2.5rem] w-full sm:w-fit border border-slate-50 shadow-sm">
                 <button
                     onClick={() => setViewMode('ASSET_POOL')}
                     className={cn(
-                        'flex-1 sm:flex-initial px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2',
+                        'flex-1 sm:flex-initial px-8 py-3.5 rounded-[2rem] text-[10px] font-black tracking-[0.2em] transition-all flex items-center justify-center gap-3 uppercase',
                         viewMode === 'ASSET_POOL'
-                            ? 'bg-emerald-600 text-white shadow-md'
-                            : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-slate-900 text-white shadow-xl scale-[1.02]'
+                            : 'text-slate-400 hover:text-slate-600'
                     )}
                 >
-                    <i className="fas fa-database"></i>
-                    ASSET ({commonResources.length})
+                    <i className="fas fa-database text-[10px]"></i>
+                    Assets ({commonResources.length})
                 </button>
                 <button
                     onClick={() => setViewMode('PAGE_EDITOR')}
                     className={cn(
-                        'flex-1 sm:flex-initial px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2',
+                        'flex-1 sm:flex-initial px-8 py-3.5 rounded-[2rem] text-[10px] font-black tracking-[0.2em] transition-all flex items-center justify-center gap-3 uppercase',
                         viewMode === 'PAGE_EDITOR'
-                            ? 'bg-indigo-600 text-white shadow-md'
-                            : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-[#9B87F5] text-white shadow-xl scale-[1.02]'
+                            : 'text-slate-400 hover:text-slate-600'
                     )}
                 >
-                    <i className="fas fa-edit"></i>
-                    PAGE EDITOR
+                    <i className="fas fa-edit text-[10px]"></i>
+                    Page Editor
                 </button>
             </div>
 
-            {/* ASSET POOL 뷰 */}
+            {/* ASSET POOL 뷰 (Minimalist Library) */}
             {viewMode === 'ASSET_POOL' && (
-                <div className="space-y-6">
-                    <div className="flex items-center justify-end">
-                        <div className="flex gap-3">
-                            <button onClick={addCommonResource} className="btn-success flex items-center gap-2">
-                                <i className="fas fa-plus"></i>
-                                새 어셋
-                            </button>
+                <div className="space-y-8 animate-fade-in">
+                    <div className="flex items-center justify-between px-2">
+                        <div className="space-y-1">
+                            <h2 className="text-2xl font-serif font-black text-[#2D2D2D]">Resource Library</h2>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manage your extracted learning assets</p>
                         </div>
+                        <button
+                            onClick={addCommonResource}
+                            className="h-12 px-6 rounded-[1.5rem] bg-[#E0D7FF] text-[#8170FF] font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-md transition-all flex items-center gap-3"
+                        >
+                            <i className="fas fa-plus"></i>
+                            New Asset
+                        </button>
                     </div>
 
                     {commonResources.length === 0 ? (
-                        <div className="card p-16 text-center">
-                            <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                                <i className="fas fa-database text-4xl text-slate-300"></i>
+                        <div className="card !py-24 text-center bg-white/40 border-none shadow-none">
+                            <div className="w-24 h-24 rounded-[2.5rem] bg-slate-50 flex items-center justify-center mx-auto mb-8">
+                                <i className="fas fa-box-open text-4xl text-slate-200"></i>
                             </div>
-                            <p className="text-slate-400 font-bold">어셋 풀이 비어있습니다</p>
-                            <p className="text-slate-300 text-sm mt-1">새 어셋을 추가하세요</p>
+                            <p className="text-[#2D2D2D] font-serif text-2xl mb-2">Library is Empty</p>
+                            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Start by adding your first educational asset</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
@@ -836,7 +910,10 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                     onDelete={() => deleteCommonResource(res.id)}
                                     onAiSegment={() => handleAiSmartSegment(res.id)}
                                     onAiImage={() => setPromptModal({ show: true, id: res.id, initial: res.text, style: 'illustration', situation: '' })}
-                                    onAiAudio={() => openVoiceModal(res.id)}
+                                    isActiveVoice={activeVoiceId === res.id}
+                                    onVoiceToggle={() => toggleVoiceStudio(res.id)}
+                                    onVoicePreview={() => previewAudioTTS(res.id)}
+                                    onVoiceGenerate={() => generateAudioTTS(res.id)}
                                     onImageClick={(url, text) => setImageModal({ show: true, url, text, resourceId: res.id })}
                                 />
                             ))}
@@ -845,40 +922,71 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                 </div>
             )}
 
-            {/* PAGE EDITOR 뷰 */}
+            {/* PAGE EDITOR 뷰 (Hierarchical Structuring) */}
             {viewMode === 'PAGE_EDITOR' && (
-                <div className="space-y-6">
-                    {/* 계층 선택 영역 삭제됨 */}
+                <div className="space-y-10 animate-fade-in">
+                    <div className="px-2 space-y-1">
+                        <h2 className="text-2xl font-serif font-black text-[#2D2D2D]">Page Structure</h2>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sequence your assets into interactive learning stacks</p>
+                    </div>
 
                     {/* 스택 목록 */}
-                    <div className="space-y-6">
+                    <div className="space-y-10">
                         {pageStacks.map((stack, idx) => (
-                            <div key={stack.id} className="card overflow-hidden">
-                                <div className="card-header flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-xl">
+                            <div key={stack.id} className="card !p-0 overflow-hidden border-none bg-white shadow-xl shadow-slate-100/50 group">
+                                <div className="bg-slate-900 px-8 py-5 flex items-center gap-6">
+                                    <div className="w-10 h-10 rounded-[1.25rem] bg-[#9B87F5] flex items-center justify-center text-white font-serif font-black text-sm italic shadow-lg">
                                         {idx + 1}
                                     </div>
-                                    <select
-                                        value={stack.activityType}
-                                        onChange={(e) => updateStack(stack.id, { activityType: e.target.value as ActivityType })}
-                                        className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 outline-none min-w-[200px]"
-                                    >
-                                        {ACTIVITY_TYPES.map(type => (
-                                            <option key={type.id} value={type.id}>
-                                                {type.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <button
-                                        onClick={() => deleteStack(stack.id)}
-                                        className="ml-auto p-2 text-slate-300 hover:text-red-500 transition-colors"
-                                    >
-                                        <i className="fas fa-trash"></i>
-                                    </button>
+                                    <div className="flex-1">
+                                        <select
+                                            value={stack.activityType}
+                                            onChange={(e) => updateStack(stack.id, { activityType: e.target.value as ActivityType })}
+                                            className="bg-transparent border-none text-white text-xs font-black uppercase tracking-widest outline-none cursor-pointer focus:ring-0 w-full"
+                                        >
+                                            {ACTIVITY_TYPES.map(type => (
+                                                <option key={type.id} value={type.id} className="text-slate-900 bg-white">
+                                                    {type.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => copyStackItems(stack.items)}
+                                            className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-indigo-300 transition-all"
+                                            title="아이템 복사"
+                                        >
+                                            <i className="fas fa-copy text-xs"></i>
+                                        </button>
+                                        {stackClipboard.length > 0 && (
+                                            <button
+                                                onClick={() => pasteStackItems(stack.id)}
+                                                className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-emerald-300 transition-all"
+                                                title="복사한 아이템 붙여넣기"
+                                            >
+                                                <i className="fas fa-paste text-xs"></i>
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => duplicateStack(stack)}
+                                            className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-[#9B87F5] transition-all"
+                                            title="스택 복제"
+                                        >
+                                            <i className="fas fa-clone text-xs"></i>
+                                        </button>
+                                        <button
+                                            onClick={() => deleteStack(stack.id)}
+                                            className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-white/30 hover:text-rose-400 transition-all ml-2"
+                                            title="스택 삭제"
+                                        >
+                                            <i className="fas fa-trash-alt text-xs"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div
-                                    className="divide-y divide-slate-100 min-h-[100px]"
+                                    className="p-8 space-y-6 min-h-[150px] bg-[#F8F9FF]/30"
                                     onDragOver={(e) => e.preventDefault()}
                                     onDrop={(e) => {
                                         const resourceId = e.dataTransfer.getData('resourceId');
@@ -896,11 +1004,12 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                     }}
                                 >
                                     {stack.items.map((item, i) => (
-                                        <div key={item.id} className="p-6 hover:bg-slate-50 transition-colors">
-                                            <div className="flex items-center gap-4">
-                                                <span className="text-sm font-bold text-slate-400">#{i + 1}</span>
+                                        <div key={item.id} className="relative group/item">
+                                            <div className="flex items-center gap-6 bg-white p-5 rounded-[2rem] border border-slate-50 shadow-sm hover:shadow-md transition-all">
+                                                <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-300 shrink-0">
+                                                    {i + 1}
+                                                </div>
 
-                                                {/* Asset Pool 드롭다운 선택 */}
                                                 <div className="flex-1">
                                                     <select
                                                         value={item.text}
@@ -917,9 +1026,9 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                                             };
                                                             updateStack(stack.id, { items: newItems });
                                                         }}
-                                                        className="input-field w-full"
+                                                        className="w-full bg-transparent border-none text-sm font-bold text-[#2D2D2D] focus:ring-0 p-0"
                                                     >
-                                                        <option value="">-- Asset Pool에서 선택 --</option>
+                                                        <option value="">Select from Library...</option>
                                                         {commonResources.map(res => (
                                                             <option key={res.id} value={res.text}>
                                                                 {res.text} {res.subText ? `(${res.subText})` : ''}
@@ -933,21 +1042,24 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                                         const newItems = stack.items.filter(it => it.id !== item.id);
                                                         updateStack(stack.id, { items: newItems });
                                                     }}
-                                                    className="p-2 text-slate-300 hover:text-red-500 transition-all"
+                                                    className="w-8 h-8 rounded-full hover:bg-rose-50 flex items-center justify-center text-slate-200 hover:text-rose-400 transition-all"
                                                 >
-                                                    <i className="fas fa-times-circle"></i>
+                                                    <i className="fas fa-minus-circle"></i>
                                                 </button>
                                             </div>
                                         </div>
                                     ))}
                                     {stack.items.length === 0 && (
-                                        <div className="p-8 text-center bg-slate-50/50">
-                                            <p className="text-slate-400 text-sm font-medium">학습 데이터가 없습니다. 아래 버튼으로 추가하거나 어셋에서 끌어오세요.</p>
+                                        <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2.5rem]">
+                                            <div className="w-16 h-16 rounded-[1.5rem] bg-slate-50 flex items-center justify-center mb-4">
+                                                <i className="fas fa-plus text-slate-200 text-xl"></i>
+                                            </div>
+                                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Drop assets here or add manually</p>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="p-4 bg-slate-50 flex justify-center gap-4">
+                                <div className="px-8 py-5 bg-white border-t border-slate-50 flex justify-center">
                                     <button
                                         onClick={() => {
                                             const newItem = {
@@ -959,9 +1071,9 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                             };
                                             updateStack(stack.id, { items: [...stack.items, newItem] });
                                         }}
-                                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+                                        className="h-10 px-6 rounded-full bg-[#F8F9FF] text-[10px] font-black text-[#9B87F5] uppercase tracking-widest hover:bg-[#E0D7FF]/30 transition-all flex items-center gap-3"
                                     >
-                                        <i className="fas fa-plus-circle"></i> 항목 직접 추가
+                                        <i className="fas fa-plus-circle"></i> Add New Item
                                     </button>
                                 </div>
                             </div>
@@ -969,207 +1081,116 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
 
                         <button
                             onClick={addStack}
-                            className="w-full py-6 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all flex flex-col items-center gap-2 group"
+                            className="w-full py-10 border-2 border-dashed border-slate-100 rounded-[3rem] text-slate-400 hover:text-[#9B87F5] hover:border-[#E0D7FF] hover:bg-[#F8F9FF]/50 transition-all flex flex-col items-center gap-4 group"
                         >
-                            <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-all">
-                                <i className="fas fa-layer-group text-xl"></i>
+                            <div className="w-16 h-16 rounded-[2rem] bg-slate-50 flex items-center justify-center group-hover:bg-[#E0D7FF]/30 group-hover:text-[#9B87F5] transition-all shadow-sm">
+                                <i className="fas fa-layer-group text-2xl"></i>
                             </div>
-                            <span className="font-black text-sm">새 활동 스택 추가</span>
+                            <div className="text-center">
+                                <span className="block font-black text-xs uppercase tracking-[0.2em] mb-1">New Activity Stack</span>
+                                <span className="block text-[10px] text-slate-300 font-bold uppercase tracking-widest">Create another learning layer</span>
+                            </div>
                         </button>
                     </div>
                 </div>
             )}
 
-            {/* AI 이미지 프롬프트 모달 */}
+            {/* AI 이미지 프롬프트 모달 (Visual AI Studio) */}
             {promptModal.show && (
-                <div className="modal-overlay">
-                    <div className="modal-content animate-slide-up" style={{ maxWidth: '500px' }}>
-                        <div className="p-8">
-                            <h3 className="text-2xl font-black text-slate-900 mb-6">AI 이미지 생성</h3>
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Base Text</label>
-                                    <div className="bg-slate-50 px-4 py-3 rounded-xl font-bold text-slate-700">{promptModal.initial}</div>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Style</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button
-                                            onClick={() => setPromptModal({ ...promptModal, style: 'illustration' })}
-                                            className={cn(
-                                                'px-4 py-3 rounded-xl border-2 font-bold text-sm transition-all',
-                                                promptModal.style === 'illustration' ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-100 text-slate-400 hover:border-slate-200'
-                                            )}
-                                        >
-                                            Illustration
-                                        </button>
-                                        <button
-                                            onClick={() => setPromptModal({ ...promptModal, style: 'photo' })}
-                                            className={cn(
-                                                'px-4 py-3 rounded-xl border-2 font-bold text-sm transition-all',
-                                                promptModal.style === 'photo' ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-100 text-slate-400 hover:border-slate-200'
-                                            )}
-                                        >
-                                            Realistic
-                                        </button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Extra Situation (Optional)</label>
-                                    <textarea
-                                        value={promptModal.situation}
-                                        onChange={(e) => setPromptModal({ ...promptModal, situation: e.target.value })}
-                                        placeholder="e.g. A happy children playing in the park..."
-                                        className="input-field w-full h-24 resize-none"
-                                    />
-                                </div>
-                                <div className="flex gap-3 pt-4">
-                                    <button onClick={() => setPromptModal({ ...promptModal, show: false })} className="btn-secondary flex-1">취소</button>
-                                    <button
-                                        onClick={() => generateImageAI(promptModal.id, `${promptModal.initial}, ${promptModal.style} style, ${promptModal.situation}`)}
-                                        className={cn("btn-primary flex-1 gradient-indigo", loadingId === promptModal.id && "opacity-50 pointer-events-none")}
-                                        disabled={loadingId === promptModal.id}
-                                    >
-                                        {loadingId === promptModal.id ? '생성 중...' : '생성하기'}
-                                    </button>
-                                </div>
-                            </div>
+                <div className="modal-overlay !bg-slate-900/40 backdrop-blur-md">
+                    <div className="modal-content animate-slide-up !p-0 overflow-hidden border-none shadow-2xl" style={{ maxWidth: '500px' }}>
+                        <div className="bg-slate-900 p-8 flex items-center justify-between">
+                            <h3 className="text-xl font-serif font-black text-white italic">Visual AI Studio</h3>
+                            <button onClick={() => setPromptModal({ ...promptModal, show: false })} className="text-white/30 hover:text-white transition-all">
+                                <i className="fas fa-times"></i>
+                            </button>
                         </div>
-                    </div>
-                </div>
-            )}
+                        <div className="p-10 space-y-8 bg-white">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Base Concept</label>
+                                <div className="bg-[#F8F9FF] px-6 py-4 rounded-[1.5rem] font-serif font-black text-[#2D2D2D] text-lg border border-slate-50">{promptModal.initial}</div>
+                            </div>
 
-            {/* AI 음성 생성 모달 (확장) */}
-            {voiceModal.show && (
-                <div className="modal-overlay" onClick={() => setVoiceModal({ ...voiceModal, show: false })}>
-                    <div className="modal-content relative animate-slide-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
-                        {/* 우측 상단 나가기 버튼 */}
-                        <button
-                            onClick={() => setVoiceModal({ ...voiceModal, show: false })}
-                            className="absolute top-4 right-4 w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all z-10"
-                        >
-                            <i className="fas fa-times text-xl"></i>
-                        </button>
-
-                        <div className="p-8">
-                            <h3 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
-                                <i className="fas fa-microphone-alt text-blue-500"></i>
-                                AI 음성 설정
-                            </h3>
-
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">대상 텍스트</label>
-                                    <p className="bg-slate-50 p-4 rounded-xl font-bold text-slate-800 border border-slate-100">{voiceModal.text}</p>
-                                </div>
-
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Artistic Style</label>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">언어 (Speech Language)</label>
-                                        <select
-                                            value={voiceModal.lang}
-                                            onChange={(e) => setVoiceModal({ ...voiceModal, lang: e.target.value })}
-                                            className="input-field w-full"
-                                        >
-                                            <option value="ko-KR">한국어 (Korean)</option>
-                                            <option value="en-US">영어 (US English)</option>
-                                            <option value="en-GB">영어 (UK English)</option>
-                                            <option value="zh-CN">중국어 (Chinese Simplified)</option>
-                                            <option value="ja-JP">일본어 (Japanese)</option>
-                                            <option value="es-ES">스페인어 (Spanish)</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">성별</label>
-                                        <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
-                                            <button
-                                                onClick={() => setVoiceModal({ ...voiceModal, voice: 'female' })}
-                                                className={cn(
-                                                    'py-2 px-3 rounded-lg text-xs font-bold transition-all',
-                                                    voiceModal.voice === 'female' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'
-                                                )}
-                                            >
-                                                여성
-                                            </button>
-                                            <button
-                                                onClick={() => setVoiceModal({ ...voiceModal, voice: 'male' })}
-                                                className={cn(
-                                                    'py-2 px-3 rounded-lg text-xs font-bold transition-all',
-                                                    voiceModal.voice === 'male' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'
-                                                )}
-                                            >
-                                                남성
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">속도 (Speed)</label>
-                                            <span className="text-xs font-bold text-blue-600">{voiceModal.speed.toFixed(1)}x</span>
-                                        </div>
-                                        <input
-                                            type="range" min="0.5" max="2.0" step="0.1"
-                                            value={voiceModal.speed}
-                                            onChange={(e) => setVoiceModal({ ...voiceModal, speed: parseFloat(e.target.value) })}
-                                            className="w-full accent-blue-600"
-                                        />
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">피치 (Pitch)</label>
-                                            <span className="text-xs font-bold text-blue-600">{voiceModal.pitch.toFixed(1)}</span>
-                                        </div>
-                                        <input
-                                            type="range" min="0.5" max="2.0" step="0.1"
-                                            value={voiceModal.pitch}
-                                            onChange={(e) => setVoiceModal({ ...voiceModal, pitch: parseFloat(e.target.value) })}
-                                            className="w-full accent-indigo-600"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3 pt-4">
-                                    <button onClick={previewAudioTTS} className="btn-secondary flex-1 flex items-center justify-center gap-2">
-                                        <i className="fas fa-play"></i>
-                                        미리듣기
+                                    <button
+                                        onClick={() => setPromptModal({ ...promptModal, style: 'illustration' })}
+                                        className={cn(
+                                            'px-6 py-4 rounded-[1.5rem] border-2 font-black text-xs uppercase tracking-widest transition-all',
+                                            promptModal.style === 'illustration' ? 'border-[#9B87F5] bg-[#F0EDFF] text-[#8170FF]' : 'border-slate-50 text-slate-300 hover:border-slate-100'
+                                        )}
+                                    >
+                                        Illustration
                                     </button>
                                     <button
-                                        onClick={generateAudioTTS}
-                                        className={cn("btn-primary flex-1 bg-blue-600 hover:bg-blue-700 shadow-blue-100 flex items-center justify-center gap-2", loadingId === voiceModal.id && "opacity-50 pointer-events-none")}
-                                        disabled={loadingId === voiceModal.id}
+                                        onClick={() => setPromptModal({ ...promptModal, style: 'photo' })}
+                                        className={cn(
+                                            'px-6 py-4 rounded-[1.5rem] border-2 font-black text-xs uppercase tracking-widest transition-all',
+                                            promptModal.style === 'photo' ? 'border-[#9B87F5] bg-[#F0EDFF] text-[#8170FF]' : 'border-slate-50 text-slate-300 hover:border-slate-100'
+                                        )}
                                     >
-                                        <i className={loadingId === voiceModal.id ? "fas fa-spinner fa-spin" : "fas fa-save"}></i>
-                                        {loadingId === voiceModal.id ? '생성 중...' : '음성 생성 & 저장'}
+                                        Realistic
                                     </button>
                                 </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Extra Magic (Optional)</label>
+                                <textarea
+                                    value={promptModal.situation}
+                                    onChange={(e) => setPromptModal({ ...promptModal, situation: e.target.value })}
+                                    placeholder="Add more details to the scene..."
+                                    className="w-full bg-[#F8F9FF] border-none rounded-[2rem] px-6 py-5 text-sm font-bold text-[#2D2D2D] focus:ring-2 focus:ring-[#E0D7FF] outline-none h-32 resize-none transition-all"
+                                />
+                            </div>
+
+                            <div className="flex gap-4 pt-4">
+                                <button
+                                    onClick={() => generateImageAI(promptModal.id, `${promptModal.initial}, ${promptModal.style} style, ${promptModal.situation}`)}
+                                    className={cn(
+                                        "h-16 flex-1 rounded-[2rem] bg-gradient-to-r from-[#9B87F5] to-[#8170FF] text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-[#9B87F5]/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3",
+                                        loadingId === promptModal.id && "opacity-50 pointer-events-none"
+                                    )}
+                                    disabled={loadingId === promptModal.id}
+                                >
+                                    {loadingId === promptModal.id ? (
+                                        <>
+                                            <i className="fas fa-magic animate-spin"></i>
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>Create Vision</span>
+                                            <i className="fas fa-magic"></i>
+                                        </>
+                                    )}
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* 이미지 확대 모달 */}
+            {/* 이미지 확대 모달 (Cinematic View) */}
             {imageModal.show && (
-                <div className="modal-overlay" onClick={() => setImageModal({ ...imageModal, show: false })}>
-                    <div className="modal-content overflow-hidden rounded-3xl" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', backgroundColor: 'transparent', boxShadow: 'none' }}>
-                        <div className="relative group">
-                            <img src={imageModal.url} alt="" className="w-full aspect-square object-cover rounded-3xl shadow-2xl" />
-                            <div className="absolute inset-x-0 bottom-0 p-8 bg-gradient-to-t from-black/80 to-transparent">
-                                <p className="text-white font-black text-2xl mb-2">{imageModal.text}</p>
-                                <div className="flex items-center gap-4">
+                <div className="modal-overlay !bg-slate-900/60 backdrop-blur-xl" onClick={() => setImageModal({ ...imageModal, show: false })}>
+                    <div className="modal-content !p-0 overflow-hidden rounded-[3rem] border-none shadow-2xl" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px', backgroundColor: 'transparent' }}>
+                        <div className="relative aspect-square group">
+                            <img src={imageModal.url} alt="" className="w-full h-full object-cover rounded-[3rem] shadow-2xl shadow-black/40" />
+                            <div className="absolute inset-x-0 bottom-0 p-12 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent">
+                                <p className="text-white font-serif font-black text-4xl mb-4 italic leading-tight">{imageModal.text}</p>
+                                <div className="flex items-center gap-8">
                                     <button
                                         onClick={() => {
                                             const link = document.createElement('a');
                                             link.href = imageModal.url;
-                                            link.download = `edu_img_${imageModal.text}.png`;
+                                            link.download = `tiimo_ai_${imageModal.text}.png`;
                                             link.click();
                                         }}
-                                        className="text-white/70 hover:text-white transition-colors text-sm font-bold flex items-center gap-2"
+                                        className="text-white/60 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3"
                                     >
-                                        <i className="fas fa-download"></i> 이미지 다운로드
+                                        <i className="fas fa-download"></i> Download Art
                                     </button>
                                     {imageModal.resourceId && (
                                         <button
@@ -1177,16 +1198,16 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                                 setImageModal({ ...imageModal, show: false });
                                                 setPromptModal({ show: true, id: imageModal.resourceId!, initial: imageModal.text, style: 'illustration', situation: '' });
                                             }}
-                                            className="text-white/70 hover:text-white transition-colors text-sm font-bold flex items-center gap-2"
+                                            className="text-white/60 hover:text-[#9B87F5] transition-all text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3"
                                         >
-                                            <i className="fas fa-redo"></i> 다시 생성하기
+                                            <i className="fas fa-redo"></i> Re-imagine
                                         </button>
                                     )}
                                 </div>
                             </div>
                             <button
                                 onClick={() => setImageModal({ ...imageModal, show: false })}
-                                className="absolute top-4 right-4 w-12 h-12 rounded-2xl bg-black/20 backdrop-blur-md text-white hover:bg-black/40 transition-all flex items-center justify-center"
+                                className="absolute top-8 right-8 w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-lg text-white hover:bg-white/20 transition-all flex items-center justify-center border border-white/10"
                             >
                                 <i className="fas fa-times text-xl"></i>
                             </button>
@@ -1209,7 +1230,10 @@ interface ResourceCardProps {
     onDelete: () => void;
     onAiSegment: () => void;
     onAiImage: () => void;
-    onAiAudio: () => void;
+    isActiveVoice: boolean;
+    onVoiceToggle: () => void;
+    onVoicePreview: () => void;
+    onVoiceGenerate: () => void;
     onImageClick?: (url: string, text: string) => void;
 }
 
@@ -1222,166 +1246,260 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
     onDelete,
     onAiSegment,
     onAiImage,
-    onAiAudio,
+    isActiveVoice,
+    onVoiceToggle,
+    onVoicePreview,
+    onVoiceGenerate,
     onImageClick
 }) => {
     const isMismatch = data.text && data.subText ? !validateSegmentMatch(data.text, data.subText) : false;
-    const imageInputRef = useRef<HTMLInputElement>(null);
-    const audioInputRef = useRef<HTMLInputElement>(null);
 
     return (
         <div
             draggable
             onDragStart={(e) => e.dataTransfer.setData('resourceId', data.id)}
             className={cn(
-                'card p-6 flex items-center gap-6 group hover:shadow-xl hover:shadow-slate-200/50 transition-all relative cursor-grab active:cursor-grabbing',
+                'card !p-0 flex flex-col group hover:shadow-2xl hover:shadow-[#E0D7FF]/20 transition-all duration-300 relative cursor-grab active:cursor-grabbing border-none bg-white overflow-hidden',
                 isLoading && 'opacity-60 pointer-events-none'
             )}
         >
-            <div className="w-12 text-center flex flex-col items-center gap-1">
-                <i className="fas fa-grip-vertical text-slate-200 group-hover:text-slate-400 transition-colors"></i>
-                <span className="text-xs font-black text-slate-300">#{index + 1}</span>
-            </div>
-
-            <div className="flex-1 grid grid-cols-12 gap-4">
-                {/* 메인 텍스트 */}
-                <div className="col-span-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Text</label>
-                    <input
-                        type="text"
-                        value={data.text}
-                        onChange={(e) => onUpdate({ text: e.target.value })}
-                        className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2 font-serif text-lg font-bold text-slate-800 focus:border-indigo-500 outline-none transition-all shadow-input"
-                    />
+            <div className="flex items-center gap-10 p-8">
+                <div className="w-12 flex flex-col items-center gap-2 shrink-0">
+                    <div className="w-10 h-10 rounded-[1.25rem] bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-[#F8F9FF] group-hover:text-slate-500 transition-all">
+                        <i className="fas fa-grip-vertical text-xs"></i>
+                    </div>
+                    <span className="text-[10px] font-black text-slate-200 group-hover:text-slate-400">#{index + 1}</span>
                 </div>
 
-                {/* 서브 텍스트 (병음/후리가나) */}
-                <div className="col-span-4">
-                    <div className="flex justify-between items-center mb-1">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{subLabel || 'SubText'}</label>
+                <div className="flex-1 space-y-8">
+                    <div className="grid grid-cols-12 gap-8">
+                        {/* 메인 텍스트 */}
+                        <div className="col-span-12 lg:col-span-5 space-y-3">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Original Text</label>
+                            <input
+                                type="text"
+                                value={data.text}
+                                onChange={(e) => onUpdate({ text: e.target.value })}
+                                className="w-full bg-[#F8F9FF] border-none rounded-[1.5rem] px-6 py-4 font-serif text-2xl font-black text-[#2D2D2D] focus:ring-2 focus:ring-[#E0D7FF] outline-none transition-all"
+                                placeholder="Enter text..."
+                            />
+                        </div>
+
+                        {/* 서브 텍스트 (병음/후리가나) */}
+                        <div className="col-span-12 lg:col-span-4 space-y-3">
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{subLabel || 'Phonetic'}</label>
+                                <button
+                                    onClick={onAiSegment}
+                                    className="text-[8px] font-black text-[#8170FF] hover:text-[#9B87F5] bg-[#E0D7FF]/30 px-3 py-1 rounded-full transition-all uppercase tracking-widest flex items-center gap-2"
+                                >
+                                    <i className="fas fa-magic"></i> AI Segment
+                                </button>
+                            </div>
+                            <input
+                                type="text"
+                                value={data.subText || ''}
+                                onChange={(e) => onUpdate({ subText: e.target.value })}
+                                placeholder={subLabel ? `${subLabel}...` : '-'}
+                                className={cn(
+                                    "w-full bg-[#F8F9FF] border-none rounded-[1.5rem] px-6 py-4 text-sm font-bold text-slate-400 focus:ring-2 focus:ring-[#E0D7FF] outline-none transition-all",
+                                    isMismatch && 'bg-rose-50/50 ring-1 ring-rose-100'
+                                )}
+                            />
+                        </div>
+
+                        {/* 번역 */}
+                        <div className="col-span-12 lg:col-span-3 space-y-3">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Meaning</label>
+                            <input
+                                type="text"
+                                value={data.translation}
+                                onChange={(e) => onUpdate({ translation: e.target.value })}
+                                className="w-full bg-[#F8F9FF] border-none rounded-[1.5rem] px-6 py-4 text-xs font-black text-[#9B87F5] focus:ring-2 focus:ring-[#E0D7FF] outline-none transition-all"
+                                placeholder="Translation..."
+                            />
+                        </div>
+                    </div>
+
+                    {/* 하단 미디어 매직 바 */}
+                    <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => {
+                                    if (data.imageUrl && onImageClick) {
+                                        onImageClick(data.imageUrl, data.text);
+                                    } else {
+                                        onAiImage();
+                                    }
+                                }}
+                                className={cn(
+                                    'h-14 px-6 rounded-[1.5rem] flex items-center gap-3 transition-all font-black text-[10px] uppercase tracking-widest group/btn',
+                                    data.imageUrl
+                                        ? 'bg-[#F8F9FF] text-[#9B87F5] hover:bg-[#E0D7FF]/30 shadow-sm'
+                                        : 'bg-[#F8F9FF] text-slate-300 hover:text-[#9B87F5] hover:bg-[#F0EDFF]'
+                                )}
+                            >
+                                {data.imageUrl ? (
+                                    <>
+                                        <div className="w-8 h-8 rounded-xl overflow-hidden shadow-md">
+                                            <img src={data.imageUrl} alt="" className="w-full h-full object-cover" />
+                                        </div>
+                                        <span>Visual AI</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-image text-lg"></i>
+                                        <span>Create Image</span>
+                                    </>
+                                )}
+                            </button>
+
+                            <button
+                                onClick={onVoiceToggle}
+                                className={cn(
+                                    'h-14 px-6 rounded-[1.5rem] flex items-center gap-3 transition-all font-black text-[10px] uppercase tracking-widest',
+                                    (data.audioUrl || isActiveVoice)
+                                        ? 'bg-[#E0D7FF]/30 text-[#8170FF] shadow-sm'
+                                        : 'bg-[#F8F9FF] text-slate-300 hover:text-[#8170FF] hover:bg-[#E0EBFF]'
+                                )}
+                            >
+                                <i className={cn("text-lg", data.audioUrl ? 'fas fa-volume-up' : 'fas fa-microphone')}></i>
+                                <span>{data.audioUrl ? 'Voice Ready' : isActiveVoice ? 'Configuring...' : 'Voice AI'}</span>
+                            </button>
+                        </div>
+
                         <button
-                            onClick={onAiSegment}
-                            className="text-[9px] font-black text-indigo-500 hover:text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full transition-all"
+                            onClick={onDelete}
+                            className="w-14 h-14 rounded-[1.5rem] text-slate-200 hover:text-rose-400 hover:bg-rose-50 transition-all flex items-center justify-center"
                         >
-                            <i className="fas fa-magic mr-1"></i> AI 분절
+                            <i className="fas fa-trash-alt text-lg"></i>
                         </button>
                     </div>
-                    <input
-                        type="text"
-                        value={data.subText || ''}
-                        onChange={(e) => onUpdate({ subText: e.target.value })}
-                        placeholder={subLabel ? `${subLabel} 입력...` : '-'}
-                        className={cn(
-                            "w-full bg-white border rounded-xl px-4 py-2 text-sm text-slate-500 focus:border-indigo-500 outline-none transition-all shadow-input",
-                            isMismatch ? 'border-amber-300 bg-amber-50/30' : 'border-slate-100'
-                        )}
-                    />
-                </div>
-
-                {/* 번역 */}
-                <div className="col-span-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Translation</label>
-                    <input
-                        type="text"
-                        value={data.translation}
-                        onChange={(e) => onUpdate({ translation: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm font-bold text-slate-600 focus:border-indigo-500 outline-none transition-all"
-                    />
                 </div>
             </div>
 
-            {/* 액션 컨트롤 */}
-            <div className="flex items-center gap-2 pl-4 border-l border-slate-100">
-                <div className="flex items-center gap-1">
-                    {/* 이미지 */}
-                    <input
-                        ref={imageInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                                const url = URL.createObjectURL(file);
-                                onUpdate({ imageUrl: url, imageFile: file.name });
-                            }
-                        }}
-                    />
-                    <button
-                        onClick={() => {
-                            if (data.imageUrl && onImageClick) {
-                                onImageClick(data.imageUrl, data.text);
-                            } else {
-                                onAiImage();
-                            }
-                        }}
-                        className={cn(
-                            'w-11 h-11 rounded-xl border flex items-center justify-center transition-all',
-                            data.imageUrl
-                                ? 'bg-emerald-600 border-emerald-600 text-white cursor-zoom-in'
-                                : 'bg-white text-slate-300 border-slate-200 hover:border-indigo-400 hover:text-indigo-500'
-                        )}
-                        title={data.imageUrl ? "이미지 크게 보기 (길게 누르면 재생성)" : "AI 이미지 생성"}
-                    >
-                        {data.imageUrl ? (
-                            <img src={data.imageUrl} alt="" className="w-full h-full object-cover rounded-xl" />
-                        ) : (
-                            <i className="fas fa-image"></i>
-                        )}
-                    </button>
+            {/* Vocal AI Studio Inline Panel */}
+            {isActiveVoice && data.voiceSettings && (
+                <div className="bg-[#FBFAFF] border-t border-[#E0D7FF]/30 p-8 space-y-8 animate-slide-up">
+                    <div className="flex items-center gap-4 mb-2">
+                        <div className="w-10 h-10 rounded-xl bg-[#9B87F5] flex items-center justify-center text-white shadow-lg shadow-[#9B87F5]/20">
+                            <i className="fas fa-microphone-alt text-lg"></i>
+                        </div>
+                        <div className="space-y-0.5">
+                            <h3 className="text-xl font-serif font-black text-[#2D2D2D] italic">Vocal AI Studio</h3>
+                            <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em]">Configure AI Narration</p>
+                        </div>
+                    </div>
 
-                    {/* 오디오 */}
-                    <input
-                        ref={audioInputRef}
-                        type="file"
-                        accept="audio/*"
-                        className="hidden"
-                        onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                                const url = URL.createObjectURL(file);
-                                onUpdate({ audioUrl: url, audioFile: file.name });
-                            }
-                        }}
-                    />
-                    <button
-                        onClick={onAiAudio}
-                        className={cn(
-                            'w-11 h-11 rounded-xl border flex items-center justify-center transition-all',
-                            data.audioUrl
-                                ? 'bg-blue-600 border-blue-600 text-white'
-                                : 'bg-white text-slate-300 border-slate-200 hover:border-blue-400 hover:text-blue-500'
-                        )}
-                        title="AI 음성 생성"
-                    >
-                        <i className={data.audioUrl ? 'fas fa-volume-up' : 'fas fa-microphone'}></i>
-                    </button>
+                    <div className="grid grid-cols-2 gap-8">
+                        <div className="space-y-3">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Language</label>
+                            <select
+                                value={data.voiceSettings.lang}
+                                onChange={(e) => onUpdate({ voiceSettings: { ...data.voiceSettings!, lang: e.target.value } })}
+                                className="w-full bg-white border border-slate-100 rounded-[1.25rem] px-5 py-3 text-[9px] font-black uppercase tracking-widest text-[#2D2D2D] outline-none focus:ring-2 focus:ring-[#E0D7FF] h-12"
+                            >
+                                <option value="ko-KR">KOREAN</option>
+                                <option value="en-US">US ENGLISH</option>
+                                <option value="en-GB">UK ENGLISH</option>
+                                <option value="zh-CN">CHINESE</option>
+                                <option value="ja-JP">JAPANESE</option>
+                                <option value="es-ES">SPANISH</option>
+                            </select>
+                        </div>
+                        <div className="space-y-3">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Persona</label>
+                            <div className="grid grid-cols-2 gap-2 bg-white border border-slate-100 p-1 rounded-[1.25rem] h-12">
+                                <button
+                                    onClick={() => onUpdate({ voiceSettings: { ...data.voiceSettings!, voice: 'female' } })}
+                                    className={cn(
+                                        'rounded-lg text-[8px] font-black uppercase tracking-widest transition-all',
+                                        data.voiceSettings.voice === 'female' ? 'bg-[#9B87F5] text-white shadow-sm' : 'text-slate-300 hover:text-slate-500'
+                                    )}
+                                >
+                                    Female
+                                </button>
+                                <button
+                                    onClick={() => onUpdate({ voiceSettings: { ...data.voiceSettings!, voice: 'male' } })}
+                                    className={cn(
+                                        'rounded-lg text-[8px] font-black uppercase tracking-widest transition-all',
+                                        data.voiceSettings.voice === 'male' ? 'bg-[#9B87F5] text-white shadow-sm' : 'text-slate-300 hover:text-slate-500'
+                                    )}
+                                >
+                                    Male
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
-                    {/* 삭제 */}
-                    <button
-                        onClick={onDelete}
-                        className="w-11 h-11 rounded-xl text-slate-200 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center"
-                    >
-                        <i className="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
+                    <div className="grid grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Tempo</label>
+                                <span className="text-[9px] font-black text-[#8170FF]">{data.voiceSettings.speed.toFixed(1)}x</span>
+                            </div>
+                            <input
+                                type="range" min="0.5" max="2.0" step="0.1"
+                                value={data.voiceSettings.speed}
+                                onChange={(e) => onUpdate({ voiceSettings: { ...data.voiceSettings!, speed: parseFloat(e.target.value) } })}
+                                className="w-full accent-[#9B87F5] h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
+                            />
+                        </div>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Pitch</label>
+                                <span className="text-[9px] font-black text-[#9B87F5]">{data.voiceSettings.pitch.toFixed(1)}</span>
+                            </div>
+                            <input
+                                type="range" min="0.5" max="2.0" step="0.1"
+                                value={data.voiceSettings.pitch}
+                                onChange={(e) => onUpdate({ voiceSettings: { ...data.voiceSettings!, pitch: parseFloat(e.target.value) } })}
+                                className="w-full accent-[#9B87F5] h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
+                            />
+                        </div>
+                    </div>
 
-            {/* 로딩 오버레이 */}
-            {isLoading && (
-                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-3xl">
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="spinner"></div>
-                        <span className="text-xs font-bold text-indigo-600">AI 처리 중...</span>
+                    <div className="flex gap-4 pt-4">
+                        <button
+                            onClick={onVoicePreview}
+                            className="h-14 px-8 rounded-[1.25rem] bg-white border border-slate-100 text-slate-400 font-black text-[9px] uppercase tracking-[0.2em] hover:bg-[#F8F9FF] hover:text-[#9B87F5] transition-all flex items-center justify-center gap-3"
+                        >
+                            <i className="fas fa-play text-[8px]"></i>
+                            Preview
+                        </button>
+                        <button
+                            onClick={onVoiceGenerate}
+                            className={cn(
+                                "h-14 flex-1 rounded-[1.25rem] bg-slate-900 text-white font-black text-[9px] uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4",
+                                isLoading && "opacity-50 pointer-events-none"
+                            )}
+                            disabled={isLoading}
+                        >
+                            <i className={cn("text-[10px] text-[#9B87F5]", isLoading ? "fas fa-spinner fa-spin" : "fas fa-magic")}></i>
+                            <span>{isLoading ? 'Generating...' : 'Apply Vocal AI'}</span>
+                        </button>
                     </div>
                 </div>
             )}
 
-            {/* 세그먼트 불일치 경고 */}
+            {/* AI Loading State Overlay (Only for non-voice actions if needed, otherwise panel handles it) */}
+            {isLoading && !isActiveVoice && (
+                <div className="absolute inset-0 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center z-20">
+                    <div className="relative">
+                        <div className="w-16 h-16 border-4 border-[#E0D7FF] border-t-[#9B87F5] rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <i className="fas fa-magic text-[#9B87F5] animate-pulse"></i>
+                        </div>
+                    </div>
+                    <p className="mt-6 text-[10px] font-black text-[#9B87F5] uppercase tracking-[0.3em] animate-pulse">AI is working its magic...</p>
+                </div>
+            )}
+
+            {/* Mismatch Alert Card */}
             {isMismatch && (
-                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-[9px] font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-2">
-                    <i className="fas fa-exclamation-circle"></i>
-                    원문과 발음의 세그먼트(/) 개수가 일치하지 않습니다
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#FF9E85] text-white text-[8px] font-black px-5 py-2 rounded-full shadow-xl flex items-center gap-2 uppercase tracking-widest animate-bounce z-10">
+                    <i className="fas fa-exclamation-triangle"></i>
+                    Segmentation Mismatch
                 </div>
             )}
         </div>

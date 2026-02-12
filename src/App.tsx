@@ -229,7 +229,8 @@ const App: React.FC = () => {
                 setPageDataExists(exists);
 
                 // Step2 또는 Step3 뷰에서 카테고리 변경 시: DB 데이터 자동 로드하여 step2Data 갱신
-                if (currentView === 'step2' || currentView === 'step3') {
+                // 단, Step1을 방금 완료한 경우(step1Completed)는 덮어쓰지 않음
+                if ((currentView === 'step2' || currentView === 'step3') && !step1Completed) {
                     if (exists) {
                         const contentData = data.content_data;
                         const setPageKey = `${hierarchy.subject}-${hierarchy.level}-${hierarchy.set}-${hierarchy.page}`;
@@ -268,13 +269,15 @@ const App: React.FC = () => {
             setCheckingPage(false);
         };
         checkPageData();
-        // Step1 완료 상태 초기화
-        setStep1Completed(false);
     }, [hierarchy?.subject, hierarchy?.level, hierarchy?.set, hierarchy?.page, currentView]);
 
     // hierarchy를 전역에 동기화
     const handleHierarchyChange = useCallback((h: PageHierarchy) => {
         setHierarchy(h);
+        // [FIX] 계층이 변경되면 Step 1 신규 수집 데이터의 '최초 진입' 상태를 해제함
+        // 이를 통해 다른 페이지로 이동 시 DB 데이터를 정상적으로 불러올 수 있게 함
+        setStep1Completed(false);
+
         if (h.subject && h.level && h.set && h.page) {
             stateManager.setHierarchy(h);
         }
@@ -348,6 +351,12 @@ const App: React.FC = () => {
         saveAppState().catch(err => console.error('Auto save failed:', err));
         navigate('/step3');
     }, [navigate]);
+
+    // Step 2 업데이트 핸들러 (메모이제이션)
+    const handleStep2Update = useCallback((data: Step2Session) => {
+        setStep2Data(data);
+        stateManager.setStep2Data(data);
+    }, []);
 
     const handleStep3Complete = useCallback((data: Step3ActivityBundle) => {
         setStep3Data(data);
@@ -464,19 +473,7 @@ const App: React.FC = () => {
                                 <span>다음</span>
                             </button>
                         )}
-                        {authState.isAuthenticated && (
-                            <button
-                                onClick={() => {
-                                    if (confirm('로그아웃 하시겠습니까?')) {
-                                        stateManager.logout();
-                                        navigate('/');
-                                    }
-                                }}
-                                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-500 rounded-xl transition-all"
-                            >
-                                <i className="fas fa-sign-out-alt text-sm"></i>
-                            </button>
-                        )}
+                        <div id="step2-header-actions" className="flex items-center gap-1"></div>
                     </div>
                 </div>
             </header>
@@ -523,12 +520,10 @@ const App: React.FC = () => {
                     {/* Step 2 */}
                     <Route path="/step2" element={
                         <Step2Refinement
-                            initialData={step1Data}
+                            initialData={step1Completed ? step1Data : null}
                             workingSession={step2Data}
                             onComplete={handleStep2Complete}
-                            onUpdate={setStep2Data}
-                            onBack={handleGoHome}
-                            engineModel={engineModel}
+                            onUpdate={handleStep2Update}
                             geminiApiKey={geminiApiKey}
                             classificationConfig={classificationConfig}
                             onDirtyChange={setIsStep2Dirty}
@@ -539,8 +534,6 @@ const App: React.FC = () => {
                     <Route path="/step3" element={
                         <Step3Runtime
                             sessionData={step2Data}
-                            onComplete={handleStep3Complete}
-                            onBack={handleGoHome}
                         />
                     } />
                 </Routes>

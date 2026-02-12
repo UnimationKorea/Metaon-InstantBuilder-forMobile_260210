@@ -66,6 +66,9 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
     const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
     const [manualSubTab, setManualSubTab] = useState<'word' | 'sentence'>('word');
 
+    // 오디오 임시 저장 상태 (ID -> { url, file })
+    const [tempAudios, setTempAudios] = useState<Record<string, { url: string; file: File }>>({});
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -704,15 +707,17 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
 
     return (
         <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
-            {/* 입력 모드 선택 탭 — 선택 시 fill-in 동일 색상 */}
+            {/* 입력 모드 선택 탭 — 상호 비활성화 적용 */}
             <div className="flex gap-2 sm:gap-2">
                 <button
                     onClick={() => setInputMode('file')}
+                    disabled={manualEntries.length > 0}
                     className={cn(
                         'flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 sm:gap-3',
                         inputMode === 'file'
                             ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                            : 'bg-white border-2 border-slate-200 text-slate-400 hover:border-slate-300'
+                            : 'bg-white border-2 border-slate-200 text-slate-400 hover:border-slate-300',
+                        manualEntries.length > 0 && 'opacity-50 cursor-not-allowed bg-slate-50'
                     )}
                 >
                     <i className="fas fa-file-upload"></i>
@@ -720,11 +725,13 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                 </button>
                 <button
                     onClick={() => setInputMode('manual')}
+                    disabled={!!currentFile}
                     className={cn(
                         'flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 sm:gap-3',
                         inputMode === 'manual'
                             ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                            : 'bg-white border-2 border-slate-200 text-slate-400 hover:border-slate-300'
+                            : 'bg-white border-2 border-slate-200 text-slate-400 hover:border-slate-300',
+                        !!currentFile && 'opacity-50 cursor-not-allowed bg-slate-50'
                     )}
                 >
                     <i className="fas fa-keyboard"></i>
@@ -935,7 +942,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* 오디오 업로드 + AI TTS */}
+                                        {/* 오디오 업로드 + 적용 로직 수정 */}
                                         <div className="flex-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">
                                                 오디오
@@ -945,7 +952,9 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                     <div className="space-y-2">
                                                         <audio src={entry.audioUrl} controls className="h-10 w-full" />
                                                         <div className="flex gap-2">
-                                                            <span className="flex-1 text-center text-sm font-bold text-indigo-600 cursor-default">적용</span>
+                                                            <span className="flex-1 text-center text-sm font-bold text-emerald-600 cursor-default flex items-center justify-center gap-1">
+                                                                <i className="fas fa-check-circle"></i> 적용됨
+                                                            </span>
                                                             <button
                                                                 onClick={() => {
                                                                     if (window.confirm('Sure to delete?')) {
@@ -957,6 +966,36 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                                 <i className="fas fa-times text-xs"></i>
                                                             </button>
                                                         </div>
+                                                    </div>
+                                                ) : tempAudios[entry.id] ? (
+                                                    <div className="space-y-2 w-full">
+                                                        <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                            <span className="text-[10px] text-slate-500 truncate max-w-[80px]">
+                                                                {tempAudios[entry.id].file.name}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => {
+                                                                    const newTemps = { ...tempAudios };
+                                                                    delete newTemps[entry.id];
+                                                                    setTempAudios(newTemps);
+                                                                }}
+                                                                className="text-slate-400 hover:text-red-500"
+                                                            >
+                                                                <i className="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const temp = tempAudios[entry.id];
+                                                                updateManualEntry(entry.id, { audioUrl: temp.url, audioFile: temp.file });
+                                                                const newTemps = { ...tempAudios };
+                                                                delete newTemps[entry.id];
+                                                                setTempAudios(newTemps);
+                                                            }}
+                                                            className="w-full py-2 bg-indigo-600 text-white rounded-lg text-xs font-black hover:bg-indigo-700 transition-all shadow-md active:scale-95"
+                                                        >
+                                                            적용하기
+                                                        </button>
                                                     </div>
                                                 ) : (
                                                     <label className="cursor-pointer">
@@ -971,7 +1010,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                                 const file = e.target.files?.[0];
                                                                 if (file) {
                                                                     const url = URL.createObjectURL(file);
-                                                                    updateManualEntry(entry.id, { audioUrl: url, audioFile: file });
+                                                                    setTempAudios({ ...tempAudios, [entry.id]: { url, file } });
                                                                 }
                                                             }}
                                                         />

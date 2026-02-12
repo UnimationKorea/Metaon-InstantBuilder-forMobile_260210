@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { GoogleGenAI } from '@google/genai';
 import {
     Step1Output,
@@ -32,7 +33,6 @@ interface Step2RefinementProps {
     workingSession?: Step2Session | null;
     onComplete: (data: Step2Session) => void;
     onUpdate?: (data: Step2Session) => void;
-    onBack?: () => void;
     engineModel?: string;
     geminiApiKey?: string;
     classificationConfig?: ClassificationConfig;
@@ -44,7 +44,6 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
     workingSession,
     onComplete,
     onUpdate,
-    onBack,
     engineModel = 'gemini-2.0-flash-exp',
     geminiApiKey,
     classificationConfig = DEFAULT_CLASSIFICATION,
@@ -63,6 +62,12 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
             page: '1'
         }
     );
+
+    // [FIX] 무한 루프 방지를 위한 onUpdate Ref 관리
+    const onUpdateRef = useRef(onUpdate);
+    useEffect(() => {
+        onUpdateRef.current = onUpdate;
+    }, [onUpdate]);
 
     // 분류 설정 변경 시 계층 구조 유효성 체크 및 동기화
     useEffect(() => {
@@ -101,12 +106,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
 
     // 글로벌 리소스 (Set 단위)
     const [globalResources, setGlobalResources] = useState<Record<string, ResourceData[]>>(() => {
-        // [FIX] workingSession.resources가 존재하고 비어있지 않을 때만 사용
-        if (workingSession?.resources && Object.keys(workingSession.resources).length > 0) {
-            return workingSession.resources;
-        }
-
-        // 고유 세트(aggregatedSet)에서 리소스 생성
+        // [FIX] initialData(Step 1 신규 데이터)가 있으면 최우선 사용
         if (initialData?.aggregatedSet) {
             const agg = initialData.aggregatedSet;
             const allItems: ResourceData[] = [];
@@ -167,9 +167,14 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                 });
             });
 
-            const h = workingSession?.hierarchy || { subject: 'Chinese', level: '1', set: '1', page: '1' };
+            const h = workingSession?.hierarchy || hierarchy;
             const dynamicSetKey = `${h.subject}-${h.level}-${h.set}`;
             return { [dynamicSetKey]: allItems } as Record<string, ResourceData[]>;
+        }
+
+        // [FIX] workingSession(기존 세션) 사용
+        if (workingSession?.resources && Object.keys(workingSession.resources).length > 0) {
+            return workingSession.resources;
         }
         return {} as Record<string, ResourceData[]>;
     });
@@ -237,8 +242,11 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
         };
 
         lastPushedHierarchy.current = hierarchy;
-        onUpdate?.(session);
-    }, [globalResources, allStacks, hierarchy, viewMode, onUpdate, workingSession?.sessionId, workingSession?.timestamp]);
+
+        // [FIX] 실제로 데이터가 변경되었을 때만 업데이트 알림 (얕은 비교 등으로 루프 중단 보조)
+        // onUpdateRef를 사용하여 dependency array에서 onUpdate를 제거함 (무한 루프 차단 핵심)
+        onUpdateRef.current?.(session);
+    }, [globalResources, allStacks, hierarchy, viewMode, workingSession?.sessionId, workingSession?.timestamp]);
 
     // AI 처리 상태
     const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -308,6 +316,20 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
 
     useEffect(() => {
         if (!workingSession) return;
+
+        // [FIX] initialData(신규 수집 데이터)가 있는 경우, 외부 세션으로부터의 동기화(DB 로드 등)를 차단함
+        // 단, 계층 정보(hierarchy)가 변경되었다면 사용자가 페이지를 이동한 것이므로 동기화를 허용해야 함
+        const isHierarchyChanged = hierarchy && (
+            workingSession.hierarchy.subject !== hierarchy.subject ||
+            workingSession.hierarchy.level !== hierarchy.level ||
+            workingSession.hierarchy.set !== hierarchy.set ||
+            workingSession.hierarchy.page !== hierarchy.page
+        );
+
+        if (initialData && !isHierarchyChanged) {
+            console.log('[Step2] initialData exists on same hierarchy. Blocking external session sync.');
+            return;
+        }
 
         // 이미 동기화한 세션이면 스킵 (무한 루프 방지)
         if (lastSyncedSessionId.current === workingSession.sessionId) {
@@ -728,32 +750,30 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
 
     return (
         <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
-            {/* 헤더 - 액션 버튼 */}
-            <div className="flex items-center justify-end gap-1 sm:gap-3">
-                {onBack && (
-                    <button onClick={onBack} className="p-2 sm:p-3 hover:bg-slate-100 rounded-xl transition-all" title="이전">
-                        <i className="fas fa-arrow-left text-slate-500"></i>
+            {/* 헤더 - 액션 버튼 (포털을 통해 상단 헤더로 이동) */}
+            {createPortal(
+                <div className="flex items-center gap-1 sm:gap-3">
+                    <button
+                        onClick={handleTempDBSave}
+                        disabled={isSyncing}
+                        className={cn(
+                            "flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all shadow-lg",
+                            isSyncing
+                                ? "bg-slate-100 text-slate-400 cursor-wait"
+                                : "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]"
+                        )}
+                        title="저장"
+                    >
+                        <i className={cn("fas", isSyncing ? "fa-spinner fa-spin" : "fa-database")}></i>
+                        {isSyncing ? "저장 중..." : "저장"}
                     </button>
-                )}
-                <button
-                    onClick={handleTempDBSave}
-                    disabled={isSyncing}
-                    className={cn(
-                        "flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all shadow-lg",
-                        isSyncing
-                            ? "bg-slate-100 text-slate-400 cursor-wait"
-                            : "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]"
-                    )}
-                    title="저장"
-                >
-                    <i className={cn("fas", isSyncing ? "fa-spinner fa-spin" : "fa-database")}></i>
-                    {isSyncing ? "저장 중..." : "저장"}
-                </button>
-                <button onClick={handleProceed} className="btn-success flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-3">
-                    <i className="fas fa-check"></i>
-                    다음
-                </button>
-            </div>
+                    <button onClick={handleProceed} className="btn-success flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-3">
+                        <i className="fas fa-check"></i>
+                        다음
+                    </button>
+                </div>,
+                document.getElementById('step2-header-actions')!
+            )}
 
             {/* 뷰 모드 탭 */}
             <div className="flex bg-slate-100 p-1 rounded-xl sm:rounded-2xl w-full sm:w-fit">
@@ -786,13 +806,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
             {/* ASSET POOL 뷰 */}
             {viewMode === 'ASSET_POOL' && (
                 <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-2xl font-black text-slate-900">Set Asset Pool</h3>
-                            <p className="text-slate-500 text-sm font-medium">
-                                범위: <span className="text-emerald-600 font-bold">{setKey}</span>
-                            </p>
-                        </div>
+                    <div className="flex items-center justify-end">
                         <div className="flex gap-3">
                             <button onClick={addCommonResource} className="btn-success flex items-center gap-2">
                                 <i className="fas fa-plus"></i>
@@ -834,45 +848,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
             {/* PAGE EDITOR 뷰 */}
             {viewMode === 'PAGE_EDITOR' && (
                 <div className="space-y-6">
-                    {/* 계층 선택 (읽기 전용) */}
-                    <div className="card p-4 sm:p-6 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 sm:gap-6 bg-slate-900 text-white">
-                        <div className="flex-1">
-                            <label className="text-[10px] font-black text-white/50 uppercase tracking-wider block mb-2">{classificationConfig.subject}</label>
-                            <div className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3 text-sm font-bold text-white/90 flex items-center justify-between">
-                                <span>{hierarchy.subject}</span>
-                                <i className="fas fa-lock text-white/30 text-xs"></i>
-                            </div>
-                        </div>
-                        <div className="flex-1">
-                            <label className="text-[10px] font-black text-white/50 uppercase tracking-wider block mb-2">{classificationConfig.label1}</label>
-                            <div className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3 text-sm font-bold text-white/90 flex items-center justify-between">
-                                <span>{hierarchy.level}</span>
-                                <i className="fas fa-lock text-white/30 text-xs"></i>
-                            </div>
-                        </div>
-                        <div className="flex-1">
-                            <label className="text-[10px] font-black text-white/50 uppercase tracking-wider block mb-2">{classificationConfig.label2}</label>
-                            <div className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3 text-sm font-bold text-white/90 flex items-center justify-between">
-                                <span>{hierarchy.set}</span>
-                                <i className="fas fa-lock text-white/30 text-xs"></i>
-                            </div>
-                        </div>
-                        <div className="flex-1">
-                            <label className="text-[10px] font-black text-white/50 uppercase tracking-wider block mb-2">{classificationConfig.label3}</label>
-                            <div className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3 text-sm font-bold text-white/90 flex items-center justify-between">
-                                <span>{hierarchy.page}</span>
-                                <i className="fas fa-lock text-white/30 text-xs"></i>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-black text-white/30 uppercase">Live Workspace</p>
-                            <p className="text-sm font-black text-blue-400">{setKey} {hierarchy.page}</p>
-                            <p className="text-[9px] text-amber-400/70 mt-1 flex items-center gap-1">
-                                <i className="fas fa-info-circle"></i>
-                                <span>Step 3에서 위치 변경 가능</span>
-                            </p>
-                        </div>
-                    </div>
+                    {/* 계층 선택 영역 삭제됨 */}
 
                     {/* 스택 목록 */}
                     <div className="space-y-6">

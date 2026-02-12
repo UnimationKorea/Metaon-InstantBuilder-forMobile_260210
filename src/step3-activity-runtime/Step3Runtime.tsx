@@ -8,15 +8,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
     Step2Session,
-    Step3ActivityBundle,
     ActivityConfig,
     ActivityInstance,
     ActivityType,
     ResourceData,
     PageHierarchy,
     ACTIVITY_TYPES,
-    generateId,
-    getTimestamp,
     cn,
     saveAppState,
     stateManager,
@@ -25,14 +22,10 @@ import {
 
 interface Step3RuntimeProps {
     sessionData: Step2Session | null;
-    onComplete: (data: Step3ActivityBundle) => void;
-    onBack?: () => void;
 }
 
 export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
-    sessionData,
-    onComplete,
-    onBack
+    sessionData
 }) => {
     // 전역 계층 상태 (stateManager에서 초기화)
     const hierarchy: PageHierarchy = sessionData?.hierarchy || stateManager.getState().hierarchy;
@@ -50,7 +43,6 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
     const [selectedActivities, setSelectedActivities] = useState<ActivityConfig[]>([]);
     const [activeInstance, setActiveInstance] = useState<ActivityInstance | null>(null);
     const [, setIsRunning] = useState(false);
-    const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
     const [tempSyncStatus, setTempSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
     const [previewMode, setPreviewMode] = useState(false);
 
@@ -183,40 +175,6 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
         setPreviewMode(false);
     }, []);
 
-    // 메타온 동기화
-    const syncToMetaon = async () => {
-        setSyncStatus('syncing');
-
-        try {
-            // 실제 API 호출 시뮬레이션
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            const bundle: Step3ActivityBundle = {
-                sessionId: localSessionData?.sessionId || generateId(),
-                bundleId: generateId(),
-                timestamp: getTimestamp(),
-                hierarchy,
-                activities: selectedActivities.map(config => ({
-                    config,
-                    data: availableData,
-                    sandboxId: `sandbox-${config.id}`,
-                    state: { status: 'idle', progress: 0 }
-                })),
-                metaonIntegration: {
-                    targetCurriculum: `${hierarchy.subject}-${hierarchy.level}`,
-                    targetUnit: hierarchy.set,
-                    syncEnabled: true,
-                    lastSyncTime: getTimestamp(),
-                    syncStatus: 'synced'
-                }
-            };
-
-            setSyncStatus('synced');
-            onComplete(bundle);
-        } catch {
-            setSyncStatus('error');
-        }
-    };
 
     // [추가] 임시 DB 저장 (Supabase edu_page_data 연동)
     const handleTempDBSave = async () => {
@@ -280,56 +238,6 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
 
     return (
         <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
-            {/* 헤더 */}
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-lg shadow-emerald-200 flex-shrink-0">
-                        3
-                    </div>
-                    <div>
-                        <h2 className="text-lg sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">액티비티 런타임</h2>
-                        <p className="text-slate-400 font-medium text-[11px] sm:text-sm hidden sm:block">
-                            학습 액티비티를 선택하고 메타율에 배포합니다
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-1 sm:gap-3">
-                    {onBack && (
-                        <button onClick={onBack} className="p-2 sm:p-3 hover:bg-slate-100 rounded-xl transition-all" title="이전">
-                            <i className="fas fa-arrow-left text-slate-500"></i>
-                        </button>
-                    )}
-
-                    <button
-                        onClick={syncToMetaon}
-                        disabled={selectedActivities.length === 0 || syncStatus === 'syncing'}
-                        className={cn(
-                            'btn-primary flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-3',
-                            syncStatus === 'syncing' && 'opacity-70'
-                        )}
-                    >
-                        {syncStatus === 'syncing' ? (
-                            <>
-                                <i className="fas fa-spinner fa-spin"></i>
-                                <span className="hidden sm:inline">동기화 중...</span>
-                            </>
-                        ) : syncStatus === 'synced' ? (
-                            <>
-                                <i className="fas fa-check-circle"></i>
-                                <span className="hidden sm:inline">동기화 완료!</span>
-                                <span className="sm:hidden">완료</span>
-                            </>
-                        ) : (
-                            <>
-                                <i className="fas fa-cloud-upload-alt"></i>
-                                <span className="hidden sm:inline">메타온 동기화</span>
-                                <span className="sm:hidden">동기화</span>
-                            </>
-                        )}
-                    </button>
-                </div>
-            </div>
 
 
             {/* 세션 정보 */}
@@ -375,12 +283,6 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
                 {/* 선택된 액티비티 & 미리보기 */}
                 <div className="space-y-6">
                     {/* 선택된 액티비티 목록 */}
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-black text-slate-900">배포할 액티비티 목록</h3>
-                        <span className="text-xs font-bold text-slate-400">
-                            총 {selectedActivities.length}개
-                        </span>
-                    </div>
 
                     {selectedActivities.length === 0 ? (
                         <div className="card p-12 text-center">
@@ -522,86 +424,19 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
                 </div>
             </div>
 
-            {/* 메타온 통합 설정 */}
-            <div className="card p-6">
-                <h3 className="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
-                    <i className="fas fa-cloud text-indigo-500"></i>
-                    메타온 통합 설정
-                </h3>
-
-                <div className="grid md:grid-cols-3 gap-6">
-                    <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">
-                            대상 커리큘럼
-                        </label>
-                        <input
-                            type="text"
-                            value={`${hierarchy.subject}-${hierarchy.level}`}
-                            readOnly
-                            className="input-field bg-slate-100"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">
-                            대상 유닛
-                        </label>
-                        <input
-                            type="text"
-                            value={hierarchy.set}
-                            readOnly
-                            className="input-field bg-slate-100"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">
-                            동기화 상태
-                        </label>
-                        <div className={cn(
-                            'input-field flex items-center gap-2',
-                            syncStatus === 'synced' ? 'bg-emerald-50 text-emerald-700' :
-                                syncStatus === 'error' ? 'bg-red-50 text-red-700' :
-                                    syncStatus === 'syncing' ? 'bg-blue-50 text-blue-700' :
-                                        'bg-slate-100 text-slate-500'
-                        )}>
-                            <i className={cn(
-                                'fas',
-                                syncStatus === 'synced' ? 'fa-check-circle' :
-                                    syncStatus === 'error' ? 'fa-exclamation-circle' :
-                                        syncStatus === 'syncing' ? 'fa-spinner fa-spin' :
-                                            'fa-hourglass-half'
-                            )}></i>
-                            {syncStatus === 'synced' ? '동기화 완료' :
-                                syncStatus === 'error' ? '동기화 실패' :
-                                    syncStatus === 'syncing' ? '동기화 중...' :
-                                        '대기 중'}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-4 pt-4">
+            <div className="flex justify-center pt-4">
                 <button
                     onClick={handleTempDBSave}
                     disabled={tempSyncStatus === 'syncing'}
                     className={cn(
-                        "px-6 sm:px-8 py-3 sm:py-5 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-lg flex items-center justify-center gap-2 sm:gap-3 transition-all",
+                        "px-12 py-4 rounded-3xl font-black text-lg flex items-center justify-center gap-3 transition-all",
                         tempSyncStatus === 'synced'
                             ? "bg-emerald-500 text-white shadow-emerald-200"
-                            : "bg-white text-indigo-600 border-2 sm:border-4 border-indigo-600 shadow-xl hover:bg-indigo-50"
+                            : "bg-white text-indigo-600 border-4 border-indigo-600 shadow-xl hover:bg-indigo-50"
                     )}
                 >
                     <i className={cn("fas", tempSyncStatus === 'syncing' ? "fa-spinner fa-spin" : tempSyncStatus === 'synced' ? "fa-check-circle" : "fa-database")}></i>
                     {tempSyncStatus === 'synced' ? "임시 DB 저장됨" : "임시 DB 저장"}
-                </button>
-
-                <button
-                    onClick={syncToMetaon}
-                    disabled={syncStatus === 'syncing'}
-                    className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-6 sm:px-12 py-3 sm:py-5 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-lg flex items-center justify-center gap-2 sm:gap-3 shadow-2xl shadow-emerald-200 hover:shadow-3xl transition-all"
-                >
-                    <i className="fas fa-rocket text-base sm:text-xl"></i>
-                    <span className="hidden sm:inline">{selectedActivities.length}개 액티비티 메타온에 배포하기</span>
-                    <span className="sm:hidden">메타온 배포 ({selectedActivities.length})</span>
                 </button>
             </div>
         </div>

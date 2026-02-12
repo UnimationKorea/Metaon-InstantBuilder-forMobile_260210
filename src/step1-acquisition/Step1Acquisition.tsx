@@ -513,6 +513,10 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                 const isMetaContent = (text: string) =>
                     metaPatterns.some(p => p.test(text.trim()));
 
+                // 앞 번호 제거 유틸 (①②③, ⑴⑵, 1. 2. 등)
+                const stripLeadingNumber = (text: string): string =>
+                    text.replace(/^[\s]*([①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩ⓐⓑⓒⓓⓔ]|\d+[.)\s]|[a-zA-Z][.)\s])\s*/, '').trim();
+
                 // 추출 문장 (LinguisticItem 구조) - meta 타입 제외
                 const extractedSentences = rawResults
                     .filter(b => b.type !== 'meta' && b.type !== 'title')
@@ -524,12 +528,10 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                         return true;
                     })
                     .map(b => ({
-                        text: b.original,
+                        text: stripLeadingNumber(b.original),
                         reading: b.reading || '',
                         translation: b.translation || ''
                     }));
-
-                // 추출 단어 (LinguisticItem 구조) - meta 타입 제외
                 const extractedVocabulary = rawResults
                     .filter(b => b.type !== 'meta' && b.type !== 'title')
                     .filter(b => b.type === 'word' || (b.original && b.original.length <= 10 && b.original.length > 0))
@@ -540,7 +542,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                         return true;
                     })
                     .map(b => ({
-                        text: b.original,
+                        text: stripLeadingNumber(b.original),
                         reading: b.reading || '',
                         translation: b.translation || ''
                     }));
@@ -574,6 +576,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
 
             setProgress(100);
             setResults(output);
+            setActiveTab('summary');  // OCR 완료 후 페이지 요약을 기본으로 표시
 
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';

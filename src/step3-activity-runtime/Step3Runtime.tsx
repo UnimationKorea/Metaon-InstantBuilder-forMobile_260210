@@ -237,21 +237,12 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
         return icons[type] || 'fa-gamepad';
     };
 
-    // 액티비티 컬러 렌더링
+    // 액티비티 컬러 렌더링 (Unused removed to fix build)
+    /*
     const getActivityColor = (type: ActivityType): string => {
-        const colors: Record<ActivityType, string> = {
-            'quiz_multiple': 'from-[#9B87F5] to-[#8170FF]',
-            'quiz_fill_blank': 'from-[#4FD1C5] to-[#38B2AC]',
-            'matching_game': 'from-[#FFD166] to-[#F6AD55]',
-            'voice_recognition': 'from-[#FF8585] to-[#F56565]',
-            'handwriting': 'from-[#B2A4FF] to-[#8E7AB5]',
-            'flashcard': 'from-[#FFB4B4] to-[#FF8E8E]',
-            'drag_drop': 'from-[#A0E9FF] to-[#00A9FF]',
-            'metaverse_explore': 'from-[#2D2D2D] to-[#1a1a1a]',
-            'line_matching': 'from-[#6366f1] to-[#4f46e5]'
-        };
-        return colors[type] || 'from-slate-400 to-slate-500';
+        ...
     };
+    */
 
     return (
         <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">

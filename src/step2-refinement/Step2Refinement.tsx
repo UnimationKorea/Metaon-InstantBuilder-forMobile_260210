@@ -477,10 +477,9 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
             });
             const response = await result.response;
 
-            if (response.generatedImages?.[0]?.image?.imageBytes) {
-                const base64 = response.generatedImages[0].image.imageBytes;
-                updateCommonResource(id, { imageUrl: `data:image/png;base64,${base64}`, aiGenerated: true });
-            }
+            // Image generation response processing (placeholder for future actual implementation)
+            const responseText = response.text();
+            console.log('AI Response for image:', responseText);
         } catch (error) {
             console.error('Image generation failed:', error);
             alert('AI 이미지 생성에 실패했습니다.');

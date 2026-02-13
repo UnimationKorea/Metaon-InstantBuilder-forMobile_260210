@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import {
     RawOCRBlock,
     Step1Output,
@@ -290,59 +290,53 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                     required: ['page', 'topic', 'learningGoal', 'learningDirection', 'keyPoints']
                                 }
                             },
-                            aggregatedSet: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    extractedVocabulary: {
-                                        type: Type.ARRAY,
-                                        items: {
-                                            type: Type.OBJECT,
-                                            properties: {
-                                                text: { type: Type.STRING },
-                                                reading: { type: Type.STRING },
-                                                translation: { type: Type.STRING }
-                                            },
-                                            required: ['text', 'reading', 'translation']
-                                        }
+                            extractedVocabulary: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        text: { type: Type.STRING },
+                                        reading: { type: Type.STRING },
+                                        translation: { type: Type.STRING }
                                     },
-                                    extractedSentences: {
-                                        type: Type.ARRAY,
-                                        items: {
-                                            type: Type.OBJECT,
-                                            properties: {
-                                                text: { type: Type.STRING },
-                                                reading: { type: Type.STRING },
-                                                translation: { type: Type.STRING }
-                                            },
-                                            required: ['text', 'reading', 'translation']
-                                        }
+                                    required: ['text', 'reading', 'translation']
+                                }
+                            },
+                            extractedSentences: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        text: { type: Type.STRING },
+                                        reading: { type: Type.STRING },
+                                        translation: { type: Type.STRING }
                                     },
-                                    relatedVocabulary: {
-                                        type: Type.ARRAY,
-                                        items: {
-                                            type: Type.OBJECT,
-                                            properties: {
-                                                text: { type: Type.STRING },
-                                                reading: { type: Type.STRING },
-                                                translation: { type: Type.STRING }
-                                            },
-                                            required: ['text', 'reading', 'translation']
-                                        }
+                                    required: ['text', 'reading', 'translation']
+                                }
+                            },
+                            relatedVocabulary: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        text: { type: Type.STRING },
+                                        reading: { type: Type.STRING },
+                                        translation: { type: Type.STRING }
                                     },
-                                    relatedSentences: {
-                                        type: Type.ARRAY,
-                                        items: {
-                                            type: Type.OBJECT,
-                                            properties: {
-                                                text: { type: Type.STRING },
-                                                reading: { type: Type.STRING },
-                                                translation: { type: Type.STRING }
-                                            },
-                                            required: ['text', 'reading', 'translation']
-                                        }
-                                    }
-                                },
-                                required: ['extractedVocabulary', 'extractedSentences', 'relatedVocabulary', 'relatedSentences']
+                                    required: ['text', 'reading', 'translation']
+                                }
+                            },
+                            relatedSentences: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        text: { type: Type.STRING },
+                                        reading: { type: Type.STRING },
+                                        translation: { type: Type.STRING }
+                                    },
+                                    required: ['text', 'reading', 'translation']
+                                }
                             },
                             summary: {
                                 type: Type.OBJECT,
@@ -351,7 +345,8 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                     pageCount: { type: Type.INTEGER }
                                 }
                             }
-                        }
+                        },
+                        required: ['results', 'pageSummaries', 'extractedVocabulary', 'extractedSentences', 'relatedVocabulary', 'relatedSentences', 'summary']
                     }
                 }
             });

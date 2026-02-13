@@ -185,8 +185,7 @@ export type ActivityType =
     | 'flashcard'          // 플래시카드
     | 'drag_drop'          // 드래그앤드롭
     | 'metaverse_explore'  // 메타버스 탐험
-    | 'line_matching'      // 선긋기 게임
-    | 'click_text';        // 클릭 텍스트 매칭
+    | 'line_matching';     // 선긋기 게임
 
 export interface ActivityConfig {
     id: string;
@@ -282,7 +281,6 @@ export const ACTIVITY_TYPES: { id: ActivityType; label: string; icon: string }[]
     { id: 'drag_drop', label: '드래그앤드롭', icon: 'fa-hand-pointer' },
     { id: 'metaverse_explore', label: '메타버스 탐험', icon: 'fa-vr-cardboard' },
     { id: 'line_matching', label: '선긋기 게임', icon: 'fa-bezier-curve' },
-    { id: 'click_text', label: '클릭 텍스트', icon: 'fa-mouse-pointer' },
 ];
 
 export const DATA_UNIT_LABELS: Record<DataUnit, string> = {

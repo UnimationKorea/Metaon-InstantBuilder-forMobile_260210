@@ -232,8 +232,7 @@ export const Step3Runtime: React.FC<Step3RuntimeProps> = ({
             'flashcard': 'fa-clone',
             'drag_drop': 'fa-hand-pointer',
             'metaverse_explore': 'fa-vr-cardboard',
-            'line_matching': 'fa-bezier-curve',
-            'click_text': 'fa-mouse-pointer'
+            'line_matching': 'fa-bezier-curve'
         };
         return icons[type] || 'fa-gamepad';
     };

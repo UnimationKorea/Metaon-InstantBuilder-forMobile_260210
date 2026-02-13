@@ -905,6 +905,156 @@ const LineMatching: React.FC<ActivityProps> = ({ data, onComplete }) => {
     );
 };
 
+// === Click Text 매칭 (sentence-click-text-text 템플릿 기반) ===
+const ClickText: React.FC<ActivityProps> = ({ data, onComplete }) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [score, setScore] = useState(0);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [isAnswered, setIsAnswered] = useState(false);
+    const [showCorrectFlash, setShowCorrectFlash] = useState(false);
+    const [showIncorrectFlash, setShowIncorrectFlash] = useState(false);
+
+    const questions = useMemo(() => {
+        const shuffledData = [...data].sort(() => Math.random() - 0.5);
+        return shuffledData.map((targetItem) => {
+            const distractors = data
+                .filter((item) => item.id !== targetItem.id)
+                .sort(() => Math.random() - 0.5)
+                .slice(0, 2);
+            const choices = [targetItem, ...distractors].sort(() => Math.random() - 0.5);
+            return { target: targetItem, choices };
+        });
+    }, [data]);
+
+    const currentQuestion = questions[currentIndex];
+
+    const handleAnswer = (choiceId: string) => {
+        if (isAnswered) return;
+        setIsAnswered(true);
+        setSelectedId(choiceId);
+
+        const isCorrect = choiceId === currentQuestion.target.id;
+        if (isCorrect) {
+            setScore((prev) => prev + 1);
+            setShowCorrectFlash(true);
+        } else {
+            setShowIncorrectFlash(true);
+        }
+
+        setTimeout(() => {
+            setShowCorrectFlash(false);
+            setShowIncorrectFlash(false);
+            if (currentIndex < questions.length - 1) {
+                setCurrentIndex((prev) => prev + 1);
+                setSelectedId(null);
+                setIsAnswered(false);
+            } else {
+                const finalScore = isCorrect ? score + 1 : score;
+                onComplete(Math.round((finalScore / questions.length) * 100));
+            }
+        }, 1200);
+    };
+
+    if (!currentQuestion) return null;
+
+    return (
+        <div className="flex flex-col h-full max-w-2xl mx-auto p-6 animate-fade-in relative overflow-hidden">
+            {showCorrectFlash && (
+                <div className="absolute inset-0 z-50 pointer-events-none animate-pulse">
+                    <div className="w-full h-full bg-emerald-400/20 rounded-3xl flex items-center justify-center">
+                        <i className="fas fa-check-circle text-6xl text-emerald-500 drop-shadow-lg animate-bounce"></i>
+                    </div>
+                </div>
+            )}
+            {showIncorrectFlash && (
+                <div className="absolute inset-0 z-50 pointer-events-none">
+                    <div className="w-full h-full bg-rose-400/15 rounded-3xl flex items-center justify-center animate-pulse">
+                        <i className="fas fa-times-circle text-6xl text-rose-500 drop-shadow-lg"></i>
+                    </div>
+                </div>
+            )}
+
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden mr-4">
+                    <div
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500 rounded-full"
+                        style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+                    />
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-slate-400">
+                        {currentIndex + 1} / {questions.length}
+                    </span>
+                    <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                        ★ {score}
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center justify-center mb-8">
+                <div
+                    className={cn(
+                        "text-center space-y-4 p-8 rounded-3xl bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100 w-full transition-all",
+                        currentQuestion.target.audioUrl && "cursor-pointer active:scale-[0.98] hover:border-indigo-300"
+                    )}
+                    onClick={() => playAudio(currentQuestion.target.audioUrl)}
+                >
+                    <span className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                        <i className="fas fa-mouse-pointer"></i>
+                        Click the correct answer
+                        {currentQuestion.target.audioUrl && <i className="fas fa-volume-up text-[10px] text-indigo-400"></i>}
+                    </span>
+                    <h2 className="text-3xl sm:text-4xl font-black text-slate-800 leading-tight break-keep">
+                        {currentQuestion.target.text}
+                    </h2>
+                    {currentQuestion.target.subText && (
+                        <p className="text-xl text-slate-500 font-serif italic">
+                            {currentQuestion.target.subText}
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            <div className="grid gap-3">
+                {currentQuestion.choices.map((choice) => {
+                    const isSelected = selectedId === choice.id;
+                    const isTarget = choice.id === currentQuestion.target.id;
+
+                    let buttonStyle = "bg-white border-2 border-slate-100 text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:shadow-md hover:-translate-y-0.5";
+                    let icon = null;
+
+                    if (isAnswered) {
+                        if (isTarget) {
+                            buttonStyle = "bg-emerald-50 border-2 border-emerald-400 text-emerald-700 shadow-lg shadow-emerald-100 scale-[1.02]";
+                            icon = <i className="fas fa-check-circle text-emerald-500 text-xl"></i>;
+                        } else if (isSelected && !isTarget) {
+                            buttonStyle = "bg-rose-50 border-2 border-rose-400 text-rose-700 shadow-lg shadow-rose-100 scale-[0.98]";
+                            icon = <i className="fas fa-times-circle text-rose-500 text-xl"></i>;
+                        } else {
+                            buttonStyle = "bg-slate-50 border-2 border-slate-100 text-slate-300 opacity-40";
+                        }
+                    }
+
+                    return (
+                        <button
+                            key={choice.id}
+                            onClick={() => handleAnswer(choice.id)}
+                            disabled={isAnswered}
+                            className={cn(
+                                "w-full p-5 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-between shadow-sm active:scale-[0.97]",
+                                buttonStyle
+                            )}
+                        >
+                            <span className="text-left break-keep">{choice.translation}</span>
+                            {icon}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 const DefaultActivity: React.FC<ActivityProps> = ({ config }) => (
     <div className="text-center p-10 text-slate-400">
         <i className="fas fa-tools text-4xl mb-4"></i>
@@ -958,6 +1108,9 @@ export const ActivityRenderer: React.FC<ActivityRendererProps> = ({
 
         case 'line_matching':
             return <LineMatching config={config} data={data} onComplete={onComplete} />;
+
+        case 'click_text':
+            return <ClickText config={config} data={data} onComplete={onComplete} />;
 
         default:
             return <DefaultActivity config={config} data={data} onComplete={onComplete} />;

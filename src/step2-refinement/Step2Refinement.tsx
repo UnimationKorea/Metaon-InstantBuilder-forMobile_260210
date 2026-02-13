@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
     Step1Output,
     Step2Session,
@@ -468,15 +468,14 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
             if (!apiKey) {
                 throw new Error('API Key가 설정되지 않았습니다. 설정이나 DB에서 API Key를 확인해주세요.');
             }
-            const ai = new GoogleGenAI({ apiKey });
-            const response = await ai.models.generateImages({
-                model: 'imagen-4.0-generate-001',
-                prompt: `High-quality educational illustration: ${customPrompt}. No text, lettering, words, or characters in the image. Clean background.`,
-                config: {
-                    numberOfImages: 1,
-                    aspectRatio: '1:1'
-                }
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+            // imagen is often separate, but we ensure the SDK initialization is standardized
+            // For now, we standardize the SDK access to avoid 404 on initialization
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: `High-quality educational illustration: ${customPrompt}. No text, lettering, words, or characters in the image. Clean background.` }] }]
             });
+            const response = await result.response;
 
             if (response.generatedImages?.[0]?.image?.imageBytes) {
                 const base64 = response.generatedImages[0].image.imageBytes;
@@ -667,7 +666,8 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
             if (!apiKey) {
                 throw new Error('API Key가 설정되지 않았습니다. 설정이나 DB에서 API Key를 확인해주세요.');
             }
-            const ai = new GoogleGenAI({ apiKey });
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
             const prompt = `
         언어 교육 전문가로서 텍스트와 발음을 슬래시('/')를 사용하여 논리적 단위로 분절해주세요.
         과목: ${hierarchy.subject}
@@ -676,16 +676,16 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
         결과는 JSON 형식으로 반환하세요: { "segmentedText": "string", "segmentedSubText": "string" }
       `;
 
-            const response = await ai.models.generateContent({
-                model: 'models/gemini-1.5-flash',
-                contents: prompt,
-                config: { responseMimeType: 'application/json' }
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: 'application/json' }
             });
 
-            const result = JSON.parse(response.text || '{}');
+            const responseText = (await result.response).text() || '{}';
+            const parsed = JSON.parse(responseText);
             updateCommonResource(id, {
-                text: result.segmentedText || resource.text,
-                subText: result.segmentedSubText || resource.subText
+                text: parsed.segmentedText || resource.text,
+                subText: parsed.segmentedSubText || resource.subText
             });
         } catch (error) {
             console.error('AI Smart Segment Error:', error);

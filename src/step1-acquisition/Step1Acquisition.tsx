@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
     RawOCRBlock,
     Step1Output,
@@ -46,7 +46,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
     initialData,
     onComplete,
     onUpdate,
-    engineModel = 'gemini-1.5-flash',
+    engineModel = 'gemini-2.5-flash',
     geminiApiKey,
     onCostUpdate
 }) => {
@@ -185,7 +185,8 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
             if (!apiKey) {
                 throw new Error('API Key가 설정되지 않았습니다. 설정에서 API Key를 입력해주세요.');
             }
-            const ai = new GoogleGenAI({ apiKey });
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: engineModel || 'gemini-2.5-flash' });
             const base64Data = await fileToBase64(currentFile);
             setProgress(30);
 
@@ -246,8 +247,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
 
             setProgress(50);
 
-            const response = await ai.models.generateContent({
-                model: engineModel || 'gemini-2.0-flash-exp',
+            const result = await model.generateContent({
                 contents: {
                     parts: [
                         { inlineData: { data: base64Data, mimeType: currentFile.type } },
@@ -356,18 +356,19 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                 }
             });
 
+            const response = await result.response;
+
             // 비용 계산 및 업데이트
             if (onCostUpdate) {
                 // usageMetadata가 있으면 사용, 없으면 추정 (대략 글자수/4)
-                // @ts-ignore - SDK 버전에 따라 타이핑이 다를 수 있음
                 const usage = response.usageMetadata;
                 if (usage) {
-                    onCostUpdate(engineModel || 'gemini-1.5-flash', usage.promptTokenCount || 0, usage.candidatesTokenCount || 0);
+                    onCostUpdate(engineModel || 'gemini-2.5-flash', usage.promptTokenCount || 0, usage.candidatesTokenCount || 0);
                 } else {
                     // Fallback estimation
                     const inputEst = (prompt.length + base64Data.length * 0.5) / 4;
                     const outputEst = (response.text?.length || 1000) / 4;
-                    onCostUpdate(engineModel || 'gemini-1.5-flash', Math.round(inputEst), Math.round(outputEst));
+                    onCostUpdate(engineModel || 'gemini-2.5-flash', Math.round(inputEst), Math.round(outputEst));
                 }
             }
 
@@ -375,7 +376,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
 
             // JSON 파싱 (오류 복구 포함)
             let data: Record<string, unknown> = {};
-            const responseText = response.text || '{}';
+            const responseText = response.text() || '{}';
 
             try {
                 data = JSON.parse(responseText);

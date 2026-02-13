@@ -155,7 +155,7 @@ const App: React.FC = () => {
     const [geminiApiKey, setGeminiApiKey] = useState<string>(
         stateManager.getState().geminiApiKey || ''
     );
-    const [engineModel, setEngineModel] = useState('gemini-1.5-flash');
+    const [engineModel, setEngineModel] = useState('gemini-2.5-flash');
     const [authState, setAuthState] = useState(stateManager.getState().auth);
     const [hierarchy, setHierarchy] = useState<PageHierarchy | null>(
         stateManager.getState().hierarchy || null
@@ -177,10 +177,9 @@ const App: React.FC = () => {
     // 비용 추적
     const [totalCost, setTotalCost] = useState(0);
     const MODEL_RATES: Record<string, { input: number, output: number }> = {
-        'gemini-2.0-flash': { input: 0.10, output: 0.40 },
-        'gemini-1.5-pro': { input: 1.25, output: 3.75 },
-        'gemini-1.5-flash': { input: 0.075, output: 0.30 },
-        'gemini-1.5-flash-8b': { input: 0.0375, output: 0.15 }
+        'gemini-2.5-pro': { input: 1.25, output: 3.75 },
+        'gemini-2.5-flash': { input: 0.075, output: 0.30 },
+        'gemini-2.5-flash-lite': { input: 0.0375, output: 0.15 }
     };
 
     const handleCostUpdate = useCallback((model: string, inputTokens: number, outputTokens: number) => {
@@ -718,7 +717,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     engineModel, setEngineModel, geminiApiKey, setGeminiApiKey, totalCost, onClose
 }) => {
     const models = [
-        'gemini-3.0-pro-preview', 'gemini-3.0-flash-preview',
         'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'
     ];
 

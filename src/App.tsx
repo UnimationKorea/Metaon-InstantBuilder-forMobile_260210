@@ -183,7 +183,9 @@ const App: React.FC = () => {
     };
 
     const handleCostUpdate = useCallback((model: string, inputTokens: number, outputTokens: number) => {
-        const rates = MODEL_RATES[model] || MODEL_RATES['gemini-1.5-flash'];
+        // [Migration] 1.5, 2.0 모델 지원 종료 대응
+        const actualModel = model.includes('gemini-1.5') || model.includes('gemini-2.0') ? 'gemini-2.5-flash' : model;
+        const rates = MODEL_RATES[actualModel] || MODEL_RATES['gemini-2.5-flash'];
         const inputCost = (inputTokens / 1000000) * rates.input;
         const outputCost = (outputTokens / 1000000) * rates.output;
         setTotalCost(prev => prev + inputCost + outputCost);

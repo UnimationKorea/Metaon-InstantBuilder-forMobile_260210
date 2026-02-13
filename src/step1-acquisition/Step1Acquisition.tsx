@@ -250,6 +250,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
             const result = await model.generateContent({
                 contents: [
                     {
+                        role: 'user',
                         parts: [
                             { inlineData: { data: base64Data, mimeType: currentFile.type } },
                             { text: prompt }

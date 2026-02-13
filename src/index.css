@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ===== Google Fonts Import ===== */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Nunito:wght@400;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
 
 /* ===== 디자인 토큰 (Tiimo Inspired Palette) ===== */
 :root {
@@ -25,8 +25,8 @@
   --color-light: #FFFFFF;
 
   /* 폰트 정의 */
-  --font-serif: 'Playfair Display', serif;
-  --font-sans: 'Nunito', sans-serif;
+  --font-serif: 'Noto Sans KR', sans-serif;
+  --font-sans: 'Noto Sans KR', sans-serif;
 
   /* 스텝별 테마 연동 */
   --step1-color: var(--color-secondary);

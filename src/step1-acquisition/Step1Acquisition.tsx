@@ -2,7 +2,7 @@
  * =========================================
  * Step 1: 원고 수집 모듈 (Data Acquisition)
  * =========================================
- * OCR 엔진을 통한 PDF/이미지 텍스트 추출
+ * OCR 엔진을 통한 PDF/이미지 텍스트 추출 (Build Trigger: Vercel Sync)
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';

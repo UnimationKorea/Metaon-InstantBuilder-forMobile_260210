@@ -248,101 +248,103 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
             setProgress(50);
 
             const result = await model.generateContent({
-                contents: {
-                    parts: [
-                        { inlineData: { data: base64Data, mimeType: currentFile.type } },
-                        { text: prompt }
-                    ]
-                },
-                config: {
+                contents: [
+                    {
+                        parts: [
+                            { inlineData: { data: base64Data, mimeType: currentFile.type } },
+                            { text: prompt }
+                        ]
+                    }
+                ],
+                generationConfig: {
                     responseMimeType: 'application/json',
                     responseSchema: {
-                        type: Type.OBJECT,
+                        type: SchemaType.OBJECT,
                         properties: {
                             results: {
-                                type: Type.ARRAY,
+                                type: SchemaType.ARRAY,
                                 items: {
-                                    type: Type.OBJECT,
+                                    type: SchemaType.OBJECT,
                                     properties: {
-                                        id: { type: Type.STRING },
-                                        original: { type: Type.STRING },
-                                        reading: { type: Type.STRING },
-                                        translation: { type: Type.STRING },
-                                        language: { type: Type.STRING },
-                                        type: { type: Type.STRING },
-                                        page: { type: Type.INTEGER },
-                                        confidence: { type: Type.NUMBER }
+                                        id: { type: SchemaType.STRING },
+                                        original: { type: SchemaType.STRING },
+                                        reading: { type: SchemaType.STRING },
+                                        translation: { type: SchemaType.STRING },
+                                        language: { type: SchemaType.STRING },
+                                        type: { type: SchemaType.STRING },
+                                        page: { type: SchemaType.INTEGER },
+                                        confidence: { type: SchemaType.NUMBER }
                                     },
                                     required: ['id', 'original', 'reading', 'translation', 'language', 'type', 'confidence']
                                 }
                             },
                             pageSummaries: {
-                                type: Type.ARRAY,
+                                type: SchemaType.ARRAY,
                                 items: {
-                                    type: Type.OBJECT,
+                                    type: SchemaType.OBJECT,
                                     properties: {
-                                        page: { type: Type.INTEGER },
-                                        topic: { type: Type.STRING },
-                                        learningGoal: { type: Type.STRING },
-                                        learningDirection: { type: Type.STRING },
-                                        keyPoints: { type: Type.ARRAY, items: { type: Type.STRING } }
+                                        page: { type: SchemaType.INTEGER },
+                                        topic: { type: SchemaType.STRING },
+                                        learningGoal: { type: SchemaType.STRING },
+                                        learningDirection: { type: SchemaType.STRING },
+                                        keyPoints: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
                                     },
                                     required: ['page', 'topic', 'learningGoal', 'learningDirection', 'keyPoints']
                                 }
                             },
                             extractedVocabulary: {
-                                type: Type.ARRAY,
+                                type: SchemaType.ARRAY,
                                 items: {
-                                    type: Type.OBJECT,
+                                    type: SchemaType.OBJECT,
                                     properties: {
-                                        text: { type: Type.STRING },
-                                        reading: { type: Type.STRING },
-                                        translation: { type: Type.STRING }
+                                        text: { type: SchemaType.STRING },
+                                        reading: { type: SchemaType.STRING },
+                                        translation: { type: SchemaType.STRING }
                                     },
                                     required: ['text', 'reading', 'translation']
                                 }
                             },
                             extractedSentences: {
-                                type: Type.ARRAY,
+                                type: SchemaType.ARRAY,
                                 items: {
-                                    type: Type.OBJECT,
+                                    type: SchemaType.OBJECT,
                                     properties: {
-                                        text: { type: Type.STRING },
-                                        reading: { type: Type.STRING },
-                                        translation: { type: Type.STRING }
+                                        text: { type: SchemaType.STRING },
+                                        reading: { type: SchemaType.STRING },
+                                        translation: { type: SchemaType.STRING }
                                     },
                                     required: ['text', 'reading', 'translation']
                                 }
                             },
                             relatedVocabulary: {
-                                type: Type.ARRAY,
+                                type: SchemaType.ARRAY,
                                 items: {
-                                    type: Type.OBJECT,
+                                    type: SchemaType.OBJECT,
                                     properties: {
-                                        text: { type: Type.STRING },
-                                        reading: { type: Type.STRING },
-                                        translation: { type: Type.STRING }
+                                        text: { type: SchemaType.STRING },
+                                        reading: { type: SchemaType.STRING },
+                                        translation: { type: SchemaType.STRING }
                                     },
                                     required: ['text', 'reading', 'translation']
                                 }
                             },
                             relatedSentences: {
-                                type: Type.ARRAY,
+                                type: SchemaType.ARRAY,
                                 items: {
-                                    type: Type.OBJECT,
+                                    type: SchemaType.OBJECT,
                                     properties: {
-                                        text: { type: Type.STRING },
-                                        reading: { type: Type.STRING },
-                                        translation: { type: Type.STRING }
+                                        text: { type: SchemaType.STRING },
+                                        reading: { type: SchemaType.STRING },
+                                        translation: { type: SchemaType.STRING }
                                     },
                                     required: ['text', 'reading', 'translation']
                                 }
                             },
                             summary: {
-                                type: Type.OBJECT,
+                                type: SchemaType.OBJECT,
                                 properties: {
-                                    totalBlocks: { type: Type.INTEGER },
-                                    pageCount: { type: Type.INTEGER }
+                                    totalBlocks: { type: SchemaType.INTEGER },
+                                    pageCount: { type: SchemaType.INTEGER }
                                 }
                             }
                         },

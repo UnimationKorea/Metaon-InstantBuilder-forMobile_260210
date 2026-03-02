@@ -1,15 +1,20 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
-export default defineConfig({
-  base: process.env.VITE_BASE_PATH || '/',
+export default defineConfig(({ mode }) => {
+  // Load .env files (including .env.production.local) — empty prefix loads ALL vars
+  const env = loadEnv(mode, process.cwd(), '');
+  const geminiApiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
+
+  return {
+  base: env.VITE_BASE_PATH || process.env.VITE_BASE_PATH || '/',
   plugins: [
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon.svg", "favicon.svg"],
+      includeAssets: ["icon.svg", "favicon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
         name: "Metaon Instant Content Builder",
         short_name: "Metaon Instant",
@@ -33,7 +38,7 @@ export default defineConfig({
             type: "image/png",
           },
           {
-            src: "icon-192.png",
+            src: "icon-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any maskable",
@@ -75,10 +80,11 @@ export default defineConfig({
     },
   },
   define: {
-    "process.env.API_KEY": JSON.stringify(process.env.GEMINI_API_KEY),
+    "process.env.API_KEY": JSON.stringify(geminiApiKey),
   },
   server: {
     port: 5173,
     open: true,
   },
+  };
 });

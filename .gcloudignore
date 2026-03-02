@@ -1,0 +1,26 @@
+# Same exclusions as .gitignore, but .env.production.local is intentionally NOT excluded
+# (it must be sent to Cloud Build so Vite can read it at build time)
+node_modules/
+.pnp
+.pnp.js
+
+dist/
+build/
+
+# Exclude generic env files (but NOT .env.production.local)
+.env
+.env.local
+.env.*.local
+!.env.production.local
+
+.idea/
+.vscode/
+*.swp
+*.swo
+
+.DS_Store
+Thumbs.db
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

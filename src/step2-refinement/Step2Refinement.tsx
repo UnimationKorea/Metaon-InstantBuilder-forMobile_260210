@@ -454,15 +454,11 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
     const generateImageAI = async (id: string, customPrompt: string) => {
         setLoadingId(id);
         try {
-            let apiKey = geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
+            let apiKey = geminiApiKey || process.env.API_KEY;
 
             if (!apiKey) {
                 const { data: remoteKey } = await fetchGlobalConfig('gemini_api_key');
                 if (remoteKey) apiKey = remoteKey;
-            }
-
-            if (!apiKey) {
-                apiKey = 'AIzaSyB2P8I8qiGOKwxov4JVlLoDOnbMpTuiae0';
             }
 
             if (!apiKey) {
@@ -651,15 +647,11 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
 
         setLoadingId(id);
         try {
-            let apiKey = geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
+            let apiKey = geminiApiKey || process.env.API_KEY;
 
             if (!apiKey) {
                 const { data: remoteKey } = await fetchGlobalConfig('gemini_api_key');
                 if (remoteKey) apiKey = remoteKey;
-            }
-
-            if (!apiKey) {
-                apiKey = 'AIzaSyB2P8I8qiGOKwxov4JVlLoDOnbMpTuiae0';
             }
 
             if (!apiKey) {

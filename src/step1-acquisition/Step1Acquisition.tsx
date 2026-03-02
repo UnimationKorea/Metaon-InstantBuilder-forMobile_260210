@@ -181,7 +181,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
         const startTime = Date.now();
 
         try {
-            const apiKey = geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyB2P8I8qiGOKwxov4JVlLoDOnbMpTuiae0';
+            const apiKey = geminiApiKey || process.env.API_KEY;
             if (!apiKey) {
                 throw new Error('API Key가 설정되지 않았습니다. 설정에서 API Key를 입력해주세요.');
             }

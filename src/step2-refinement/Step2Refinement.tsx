@@ -816,58 +816,45 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
         hierarchy.subject === 'japanese' ? '후리가나' : null;
 
     return (
-        <div className="space-y-4 sm:space-y-8 animate-fade-in px-2 sm:px-0">
-            {/* 헤더 - 액션 버튼 (포털을 통해 상단 헤더로 이동) */}
+        <div className="max-w-2xl mx-auto w-full px-4 py-6 space-y-5 animate-fade-up">
+            {/* 헤더 액션 포털 */}
             {createPortal(
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={handleTempDBSave}
                         disabled={isSyncing}
-                        className={cn(
-                            "h-12 px-6 rounded-[1.5rem] bg-white text-slate-400 font-black text-xs uppercase tracking-widest shadow-sm hover:text-[#9B87F5] transition-all flex items-center gap-3",
-                            isSyncing && "opacity-50 cursor-wait"
-                        )}
+                        className={cn("btn btn-secondary btn-sm", isSyncing && "opacity-50 cursor-wait")}
                         title="저장"
                     >
-                        <i className={cn("fas", isSyncing ? "fa-spinner fa-spin" : "fa-cloud-upload-alt")}></i>
-                        {isSyncing ? "Saving..." : "Save Progress"}
+                        {isSyncing ? (
+                            <><span className="spinner-sm" />저장 중...</>
+                        ) : (
+                            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>저장</>
+                        )}
                     </button>
-                    <button
-                        onClick={handleProceed}
-                        className="h-12 px-10 rounded-[1.5rem] bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-[1.05] active:scale-[0.95] transition-all flex items-center justify-center gap-3"
-                    >
-                        <span>Analyze & Finish</span>
-                        <i className="fas fa-magic text-[#9B87F5]"></i>
+                    <button onClick={handleProceed} className="btn btn-step3 btn-sm">
+                        완료
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     </button>
                 </div>,
                 document.getElementById('step2-header-actions')!
             )}
 
-            {/* 뷰 모드 탭 (Tiimo Styled Navigation) */}
-            <div className="flex bg-[#F8F9FF] p-2 rounded-[2.5rem] w-full sm:w-fit border border-slate-50 shadow-sm">
+            {/* 뷰 모드 탭 */}
+            <div className="tab-bar">
                 <button
                     onClick={() => setViewMode('ASSET_POOL')}
-                    className={cn(
-                        'flex-1 sm:flex-initial px-8 py-3.5 rounded-[2rem] text-[10px] font-black tracking-[0.2em] transition-all flex items-center justify-center gap-3 uppercase',
-                        viewMode === 'ASSET_POOL'
-                            ? 'bg-slate-900 text-white shadow-xl scale-[1.02]'
-                            : 'text-slate-400 hover:text-slate-600'
-                    )}
+                    className={cn('tab-item', viewMode === 'ASSET_POOL' && 'active')}
                 >
-                    <i className="fas fa-database text-[10px]"></i>
-                    Assets ({commonResources.length})
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                    에셋 풀 ({commonResources.length})
                 </button>
                 <button
                     onClick={() => setViewMode('PAGE_EDITOR')}
-                    className={cn(
-                        'flex-1 sm:flex-initial px-8 py-3.5 rounded-[2rem] text-[10px] font-black tracking-[0.2em] transition-all flex items-center justify-center gap-3 uppercase',
-                        viewMode === 'PAGE_EDITOR'
-                            ? 'bg-[#9B87F5] text-white shadow-xl scale-[1.02]'
-                            : 'text-slate-400 hover:text-slate-600'
-                    )}
+                    className={cn('tab-item', viewMode === 'PAGE_EDITOR' && 'active')}
                 >
-                    <i className="fas fa-edit text-[10px]"></i>
-                    Page Editor
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                    페이지 편집기
                 </button>
             </div>
 
@@ -876,12 +863,12 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                 <div className="space-y-8 animate-fade-in">
                     <div className="flex items-center justify-between px-2">
                         <div className="space-y-1">
-                            <h2 className="text-2xl font-serif font-black text-[#2D2D2D]">Resource Library</h2>
+                            <h2 className="text-2xl font-serif font-black text-[#0F172A]">Resource Library</h2>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manage your extracted learning assets</p>
                         </div>
                         <button
                             onClick={addCommonResource}
-                            className="h-12 px-6 rounded-[1.5rem] bg-[#E0D7FF] text-[#8170FF] font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-md transition-all flex items-center gap-3"
+                            className="h-12 px-6 rounded-[1.5rem] bg-[#EEF2FF] text-[#8B5CF6] font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-md transition-all flex items-center gap-3"
                         >
                             <i className="fas fa-plus"></i>
                             New Asset
@@ -893,7 +880,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                             <div className="w-24 h-24 rounded-[2.5rem] bg-slate-50 flex items-center justify-center mx-auto mb-8">
                                 <i className="fas fa-box-open text-4xl text-slate-200"></i>
                             </div>
-                            <p className="text-[#2D2D2D] font-serif text-2xl mb-2">Library is Empty</p>
+                            <p className="text-[#0F172A] font-serif text-2xl mb-2">Library is Empty</p>
                             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Start by adding your first educational asset</p>
                         </div>
                     ) : (
@@ -925,7 +912,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
             {viewMode === 'PAGE_EDITOR' && (
                 <div className="space-y-10 animate-fade-in">
                     <div className="px-2 space-y-1">
-                        <h2 className="text-2xl font-serif font-black text-[#2D2D2D]">Page Structure</h2>
+                        <h2 className="text-2xl font-serif font-black text-[#0F172A]">Page Structure</h2>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sequence your assets into interactive learning stacks</p>
                     </div>
 
@@ -934,7 +921,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                         {pageStacks.map((stack, idx) => (
                             <div key={stack.id} className="card !p-0 overflow-hidden border-none bg-white shadow-xl shadow-slate-100/50 group">
                                 <div className="bg-slate-900 px-8 py-5 flex items-center gap-6">
-                                    <div className="w-10 h-10 rounded-[1.25rem] bg-[#9B87F5] flex items-center justify-center text-white font-serif font-black text-sm italic shadow-lg">
+                                    <div className="w-10 h-10 rounded-[1.25rem] bg-[#6366F1] flex items-center justify-center text-white font-serif font-black text-sm italic shadow-lg">
                                         {idx + 1}
                                     </div>
                                     <div className="flex-1">
@@ -969,7 +956,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                         )}
                                         <button
                                             onClick={() => duplicateStack(stack)}
-                                            className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-[#9B87F5] transition-all"
+                                            className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-[#6366F1] transition-all"
                                             title="스택 복제"
                                         >
                                             <i className="fas fa-clone text-xs"></i>
@@ -1025,7 +1012,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                                             };
                                                             updateStack(stack.id, { items: newItems });
                                                         }}
-                                                        className="w-full bg-transparent border-none text-sm font-bold text-[#2D2D2D] focus:ring-0 p-0"
+                                                        className="w-full bg-transparent border-none text-sm font-bold text-[#0F172A] focus:ring-0 p-0"
                                                     >
                                                         <option value="">Select from Library...</option>
                                                         {commonResources.map(res => (
@@ -1070,7 +1057,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                             };
                                             updateStack(stack.id, { items: [...stack.items, newItem] });
                                         }}
-                                        className="h-10 px-6 rounded-full bg-[#F8F9FF] text-[10px] font-black text-[#9B87F5] uppercase tracking-widest hover:bg-[#E0D7FF]/30 transition-all flex items-center gap-3"
+                                        className="h-10 px-6 rounded-full bg-[#F8F9FF] text-[10px] font-black text-[#6366F1] uppercase tracking-widest hover:bg-[#EEF2FF]/30 transition-all flex items-center gap-3"
                                     >
                                         <i className="fas fa-plus-circle"></i> Add New Item
                                     </button>
@@ -1080,9 +1067,9 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
 
                         <button
                             onClick={addStack}
-                            className="w-full py-10 border-2 border-dashed border-slate-100 rounded-[3rem] text-slate-400 hover:text-[#9B87F5] hover:border-[#E0D7FF] hover:bg-[#F8F9FF]/50 transition-all flex flex-col items-center gap-4 group"
+                            className="w-full py-10 border-2 border-dashed border-slate-100 rounded-[3rem] text-slate-400 hover:text-[#6366F1] hover:border-[#EEF2FF] hover:bg-[#F8F9FF]/50 transition-all flex flex-col items-center gap-4 group"
                         >
-                            <div className="w-16 h-16 rounded-[2rem] bg-slate-50 flex items-center justify-center group-hover:bg-[#E0D7FF]/30 group-hover:text-[#9B87F5] transition-all shadow-sm">
+                            <div className="w-16 h-16 rounded-[2rem] bg-slate-50 flex items-center justify-center group-hover:bg-[#EEF2FF]/30 group-hover:text-[#6366F1] transition-all shadow-sm">
                                 <i className="fas fa-layer-group text-2xl"></i>
                             </div>
                             <div className="text-center">
@@ -1107,7 +1094,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                         <div className="p-10 space-y-8 bg-white">
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Base Concept</label>
-                                <div className="bg-[#F8F9FF] px-6 py-4 rounded-[1.5rem] font-serif font-black text-[#2D2D2D] text-lg border border-slate-50">{promptModal.initial}</div>
+                                <div className="bg-[#F8F9FF] px-6 py-4 rounded-[1.5rem] font-serif font-black text-[#0F172A] text-lg border border-slate-50">{promptModal.initial}</div>
                             </div>
 
                             <div className="space-y-3">
@@ -1117,7 +1104,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                         onClick={() => setPromptModal({ ...promptModal, style: 'illustration' })}
                                         className={cn(
                                             'px-6 py-4 rounded-[1.5rem] border-2 font-black text-xs uppercase tracking-widest transition-all',
-                                            promptModal.style === 'illustration' ? 'border-[#9B87F5] bg-[#F0EDFF] text-[#8170FF]' : 'border-slate-50 text-slate-300 hover:border-slate-100'
+                                            promptModal.style === 'illustration' ? 'border-[#6366F1] bg-[#F0EDFF] text-[#8B5CF6]' : 'border-slate-50 text-slate-300 hover:border-slate-100'
                                         )}
                                     >
                                         Illustration
@@ -1126,7 +1113,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                         onClick={() => setPromptModal({ ...promptModal, style: 'photo' })}
                                         className={cn(
                                             'px-6 py-4 rounded-[1.5rem] border-2 font-black text-xs uppercase tracking-widest transition-all',
-                                            promptModal.style === 'photo' ? 'border-[#9B87F5] bg-[#F0EDFF] text-[#8170FF]' : 'border-slate-50 text-slate-300 hover:border-slate-100'
+                                            promptModal.style === 'photo' ? 'border-[#6366F1] bg-[#F0EDFF] text-[#8B5CF6]' : 'border-slate-50 text-slate-300 hover:border-slate-100'
                                         )}
                                     >
                                         Realistic
@@ -1140,7 +1127,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                     value={promptModal.situation}
                                     onChange={(e) => setPromptModal({ ...promptModal, situation: e.target.value })}
                                     placeholder="Add more details to the scene..."
-                                    className="w-full bg-[#F8F9FF] border-none rounded-[2rem] px-6 py-5 text-sm font-bold text-[#2D2D2D] focus:ring-2 focus:ring-[#E0D7FF] outline-none h-32 resize-none transition-all"
+                                    className="w-full bg-[#F8F9FF] border-none rounded-[2rem] px-6 py-5 text-sm font-bold text-[#0F172A] focus:ring-2 focus:ring-[#EEF2FF] outline-none h-32 resize-none transition-all"
                                 />
                             </div>
 
@@ -1148,7 +1135,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                 <button
                                     onClick={() => generateImageAI(promptModal.id, `${promptModal.initial}, ${promptModal.style} style, ${promptModal.situation}`)}
                                     className={cn(
-                                        "h-16 flex-1 rounded-[2rem] bg-gradient-to-r from-[#9B87F5] to-[#8170FF] text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-[#9B87F5]/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3",
+                                        "h-16 flex-1 rounded-[2rem] bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-[#6366F1]/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3",
                                         loadingId === promptModal.id && "opacity-50 pointer-events-none"
                                     )}
                                     disabled={loadingId === promptModal.id}
@@ -1197,7 +1184,7 @@ export const Step2Refinement: React.FC<Step2RefinementProps> = ({
                                                 setImageModal({ ...imageModal, show: false });
                                                 setPromptModal({ show: true, id: imageModal.resourceId!, initial: imageModal.text, style: 'illustration', situation: '' });
                                             }}
-                                            className="text-white/60 hover:text-[#9B87F5] transition-all text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3"
+                                            className="text-white/60 hover:text-[#6366F1] transition-all text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3"
                                         >
                                             <i className="fas fa-redo"></i> Re-imagine
                                         </button>
@@ -1258,7 +1245,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
             draggable
             onDragStart={(e) => e.dataTransfer.setData('resourceId', data.id)}
             className={cn(
-                'card !p-0 flex flex-col group hover:shadow-2xl hover:shadow-[#E0D7FF]/20 transition-all duration-300 relative cursor-grab active:cursor-grabbing border-none bg-white overflow-hidden',
+                'card !p-0 flex flex-col group hover:shadow-2xl hover:shadow-[#EEF2FF]/20 transition-all duration-300 relative cursor-grab active:cursor-grabbing border-none bg-white overflow-hidden',
                 isLoading && 'opacity-60 pointer-events-none'
             )}
         >
@@ -1279,7 +1266,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                                 type="text"
                                 value={data.text}
                                 onChange={(e) => onUpdate({ text: e.target.value })}
-                                className="w-full bg-[#F8F9FF] border-none rounded-[1.5rem] px-6 py-4 font-serif text-2xl font-black text-[#2D2D2D] focus:ring-2 focus:ring-[#E0D7FF] outline-none transition-all"
+                                className="w-full bg-[#F8F9FF] border-none rounded-[1.5rem] px-6 py-4 font-serif text-2xl font-black text-[#0F172A] focus:ring-2 focus:ring-[#EEF2FF] outline-none transition-all"
                                 placeholder="Enter text..."
                             />
                         </div>
@@ -1290,7 +1277,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{subLabel || 'Phonetic'}</label>
                                 <button
                                     onClick={onAiSegment}
-                                    className="text-[8px] font-black text-[#8170FF] hover:text-[#9B87F5] bg-[#E0D7FF]/30 px-3 py-1 rounded-full transition-all uppercase tracking-widest flex items-center gap-2"
+                                    className="text-[8px] font-black text-[#8B5CF6] hover:text-[#6366F1] bg-[#EEF2FF]/30 px-3 py-1 rounded-full transition-all uppercase tracking-widest flex items-center gap-2"
                                 >
                                     <i className="fas fa-magic"></i> AI Segment
                                 </button>
@@ -1301,7 +1288,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                                 onChange={(e) => onUpdate({ subText: e.target.value })}
                                 placeholder={subLabel ? `${subLabel}...` : '-'}
                                 className={cn(
-                                    "w-full bg-[#F8F9FF] border-none rounded-[1.5rem] px-6 py-4 text-sm font-bold text-slate-400 focus:ring-2 focus:ring-[#E0D7FF] outline-none transition-all",
+                                    "w-full bg-[#F8F9FF] border-none rounded-[1.5rem] px-6 py-4 text-sm font-bold text-slate-400 focus:ring-2 focus:ring-[#EEF2FF] outline-none transition-all",
                                     isMismatch && 'bg-rose-50/50 ring-1 ring-rose-100'
                                 )}
                             />
@@ -1314,7 +1301,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                                 type="text"
                                 value={data.translation}
                                 onChange={(e) => onUpdate({ translation: e.target.value })}
-                                className="w-full bg-[#F8F9FF] border-none rounded-[1.5rem] px-6 py-4 text-xs font-black text-[#9B87F5] focus:ring-2 focus:ring-[#E0D7FF] outline-none transition-all"
+                                className="w-full bg-[#F8F9FF] border-none rounded-[1.5rem] px-6 py-4 text-xs font-black text-[#6366F1] focus:ring-2 focus:ring-[#EEF2FF] outline-none transition-all"
                                 placeholder="Translation..."
                             />
                         </div>
@@ -1334,8 +1321,8 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                                 className={cn(
                                     'h-14 px-6 rounded-[1.5rem] flex items-center gap-3 transition-all font-black text-[10px] uppercase tracking-widest group/btn',
                                     data.imageUrl
-                                        ? 'bg-[#F8F9FF] text-[#9B87F5] hover:bg-[#E0D7FF]/30 shadow-sm'
-                                        : 'bg-[#F8F9FF] text-slate-300 hover:text-[#9B87F5] hover:bg-[#F0EDFF]'
+                                        ? 'bg-[#F8F9FF] text-[#6366F1] hover:bg-[#EEF2FF]/30 shadow-sm'
+                                        : 'bg-[#F8F9FF] text-slate-300 hover:text-[#6366F1] hover:bg-[#F0EDFF]'
                                 )}
                             >
                                 {data.imageUrl ? (
@@ -1358,8 +1345,8 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                                 className={cn(
                                     'h-14 px-6 rounded-[1.5rem] flex items-center gap-3 transition-all font-black text-[10px] uppercase tracking-widest',
                                     (data.audioUrl || isActiveVoice)
-                                        ? 'bg-[#E0D7FF]/30 text-[#8170FF] shadow-sm'
-                                        : 'bg-[#F8F9FF] text-slate-300 hover:text-[#8170FF] hover:bg-[#E0EBFF]'
+                                        ? 'bg-[#EEF2FF]/30 text-[#8B5CF6] shadow-sm'
+                                        : 'bg-[#F8F9FF] text-slate-300 hover:text-[#8B5CF6] hover:bg-[#E0EBFF]'
                                 )}
                             >
                                 <i className={cn("text-lg", data.audioUrl ? 'fas fa-volume-up' : 'fas fa-microphone')}></i>
@@ -1379,13 +1366,13 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
 
             {/* Vocal AI Studio Inline Panel */}
             {isActiveVoice && data.voiceSettings && (
-                <div className="bg-[#FBFAFF] border-t border-[#E0D7FF]/30 p-8 space-y-8 animate-slide-up">
+                <div className="bg-[#FBFAFF] border-t border-[#EEF2FF]/30 p-8 space-y-8 animate-slide-up">
                     <div className="flex items-center gap-4 mb-2">
-                        <div className="w-10 h-10 rounded-xl bg-[#9B87F5] flex items-center justify-center text-white shadow-lg shadow-[#9B87F5]/20">
+                        <div className="w-10 h-10 rounded-xl bg-[#6366F1] flex items-center justify-center text-white shadow-lg shadow-[#6366F1]/20">
                             <i className="fas fa-microphone-alt text-lg"></i>
                         </div>
                         <div className="space-y-0.5">
-                            <h3 className="text-xl font-serif font-black text-[#2D2D2D] italic">Vocal AI Studio</h3>
+                            <h3 className="text-xl font-serif font-black text-[#0F172A] italic">Vocal AI Studio</h3>
                             <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em]">Configure AI Narration</p>
                         </div>
                     </div>
@@ -1396,7 +1383,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                             <select
                                 value={data.voiceSettings.lang}
                                 onChange={(e) => onUpdate({ voiceSettings: { ...data.voiceSettings!, lang: e.target.value } })}
-                                className="w-full bg-white border border-slate-100 rounded-[1.25rem] px-5 py-3 text-[9px] font-black uppercase tracking-widest text-[#2D2D2D] outline-none focus:ring-2 focus:ring-[#E0D7FF] h-12"
+                                className="w-full bg-white border border-slate-100 rounded-[1.25rem] px-5 py-3 text-[9px] font-black uppercase tracking-widest text-[#0F172A] outline-none focus:ring-2 focus:ring-[#EEF2FF] h-12"
                             >
                                 <option value="ko-KR">KOREAN</option>
                                 <option value="en-US">US ENGLISH</option>
@@ -1413,7 +1400,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                                     onClick={() => onUpdate({ voiceSettings: { ...data.voiceSettings!, voice: 'female' } })}
                                     className={cn(
                                         'rounded-lg text-[8px] font-black uppercase tracking-widest transition-all',
-                                        data.voiceSettings.voice === 'female' ? 'bg-[#9B87F5] text-white shadow-sm' : 'text-slate-300 hover:text-slate-500'
+                                        data.voiceSettings.voice === 'female' ? 'bg-[#6366F1] text-white shadow-sm' : 'text-slate-300 hover:text-slate-500'
                                     )}
                                 >
                                     Female
@@ -1422,7 +1409,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                                     onClick={() => onUpdate({ voiceSettings: { ...data.voiceSettings!, voice: 'male' } })}
                                     className={cn(
                                         'rounded-lg text-[8px] font-black uppercase tracking-widest transition-all',
-                                        data.voiceSettings.voice === 'male' ? 'bg-[#9B87F5] text-white shadow-sm' : 'text-slate-300 hover:text-slate-500'
+                                        data.voiceSettings.voice === 'male' ? 'bg-[#6366F1] text-white shadow-sm' : 'text-slate-300 hover:text-slate-500'
                                     )}
                                 >
                                     Male
@@ -1435,25 +1422,25 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                         <div className="space-y-4">
                             <div className="flex justify-between items-center px-1">
                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Tempo</label>
-                                <span className="text-[9px] font-black text-[#8170FF]">{data.voiceSettings.speed.toFixed(1)}x</span>
+                                <span className="text-[9px] font-black text-[#8B5CF6]">{data.voiceSettings.speed.toFixed(1)}x</span>
                             </div>
                             <input
                                 type="range" min="0.5" max="2.0" step="0.1"
                                 value={data.voiceSettings.speed}
                                 onChange={(e) => onUpdate({ voiceSettings: { ...data.voiceSettings!, speed: parseFloat(e.target.value) } })}
-                                className="w-full accent-[#9B87F5] h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
+                                className="w-full accent-[#6366F1] h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
                             />
                         </div>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center px-1">
                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Pitch</label>
-                                <span className="text-[9px] font-black text-[#9B87F5]">{data.voiceSettings.pitch.toFixed(1)}</span>
+                                <span className="text-[9px] font-black text-[#6366F1]">{data.voiceSettings.pitch.toFixed(1)}</span>
                             </div>
                             <input
                                 type="range" min="0.5" max="2.0" step="0.1"
                                 value={data.voiceSettings.pitch}
                                 onChange={(e) => onUpdate({ voiceSettings: { ...data.voiceSettings!, pitch: parseFloat(e.target.value) } })}
-                                className="w-full accent-[#9B87F5] h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
+                                className="w-full accent-[#6366F1] h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
                             />
                         </div>
                     </div>
@@ -1461,7 +1448,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                     <div className="flex gap-4 pt-4">
                         <button
                             onClick={onVoicePreview}
-                            className="h-14 px-8 rounded-[1.25rem] bg-white border border-slate-100 text-slate-400 font-black text-[9px] uppercase tracking-[0.2em] hover:bg-[#F8F9FF] hover:text-[#9B87F5] transition-all flex items-center justify-center gap-3"
+                            className="h-14 px-8 rounded-[1.25rem] bg-white border border-slate-100 text-slate-400 font-black text-[9px] uppercase tracking-[0.2em] hover:bg-[#F8F9FF] hover:text-[#6366F1] transition-all flex items-center justify-center gap-3"
                         >
                             <i className="fas fa-play text-[8px]"></i>
                             Preview
@@ -1474,7 +1461,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                             )}
                             disabled={isLoading}
                         >
-                            <i className={cn("text-[10px] text-[#9B87F5]", isLoading ? "fas fa-spinner fa-spin" : "fas fa-magic")}></i>
+                            <i className={cn("text-[10px] text-[#6366F1]", isLoading ? "fas fa-spinner fa-spin" : "fas fa-magic")}></i>
                             <span>{isLoading ? 'Generating...' : 'Apply Vocal AI'}</span>
                         </button>
                     </div>
@@ -1485,18 +1472,18 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
             {isLoading && !isActiveVoice && (
                 <div className="absolute inset-0 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center z-20">
                     <div className="relative">
-                        <div className="w-16 h-16 border-4 border-[#E0D7FF] border-t-[#9B87F5] rounded-full animate-spin"></div>
+                        <div className="w-16 h-16 border-4 border-[#EEF2FF] border-t-[#6366F1] rounded-full animate-spin"></div>
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <i className="fas fa-magic text-[#9B87F5] animate-pulse"></i>
+                            <i className="fas fa-magic text-[#6366F1] animate-pulse"></i>
                         </div>
                     </div>
-                    <p className="mt-6 text-[10px] font-black text-[#9B87F5] uppercase tracking-[0.3em] animate-pulse">AI is working its magic...</p>
+                    <p className="mt-6 text-[10px] font-black text-[#6366F1] uppercase tracking-[0.3em] animate-pulse">AI is working its magic...</p>
                 </div>
             )}
 
             {/* Mismatch Alert Card */}
             {isMismatch && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#FF9E85] text-white text-[8px] font-black px-5 py-2 rounded-full shadow-xl flex items-center gap-2 uppercase tracking-widest animate-bounce z-10">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#F97316] text-white text-[8px] font-black px-5 py-2 rounded-full shadow-xl flex items-center gap-2 uppercase tracking-widest animate-bounce z-10">
                     <i className="fas fa-exclamation-triangle"></i>
                     Segmentation Mismatch
                 </div>

@@ -703,36 +703,24 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
     };
 
     return (
-        <div className="space-y-6 sm:space-y-10 animate-fade-in px-2 sm:px-0">
-            {/* 입력 모드 선택 (Tiimo Soft Tabs) */}
-            <div className="flex p-2 bg-white/40 backdrop-blur-md rounded-[2.5rem] border border-white/40 shadow-sm max-w-sm mx-auto">
+        <div className="max-w-2xl mx-auto w-full px-4 py-6 space-y-6 animate-fade-up">
+            {/* 입력 모드 선택 */}
+            <div className="tab-bar">
                 <button
                     onClick={() => setInputMode('file')}
                     disabled={manualEntries.length > 0}
-                    className={cn(
-                        'flex-1 py-4 rounded-full font-black text-sm transition-all duration-500 flex items-center justify-center gap-3',
-                        inputMode === 'file'
-                            ? 'bg-white text-[#9B87F5] shadow-md'
-                            : 'text-slate-400 hover:bg-white/40',
-                        manualEntries.length > 0 && 'opacity-30 cursor-not-allowed'
-                    )}
+                    className={cn('tab-item', inputMode === 'file' && 'active', manualEntries.length > 0 && 'opacity-40 pointer-events-none')}
                 >
-                    <i className="fas fa-magic"></i>
-                    Magical OCR
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    OCR 업로드
                 </button>
                 <button
                     onClick={() => setInputMode('manual')}
                     disabled={!!currentFile}
-                    className={cn(
-                        'flex-1 py-4 rounded-full font-black text-sm transition-all duration-500 flex items-center justify-center gap-3',
-                        inputMode === 'manual'
-                            ? 'bg-white text-[#9B87F5] shadow-md'
-                            : 'text-slate-400 hover:bg-white/40',
-                        !!currentFile && 'opacity-30 cursor-not-allowed'
-                    )}
+                    className={cn('tab-item', inputMode === 'manual' && 'active', !!currentFile && 'opacity-40 pointer-events-none')}
                 >
-                    <i className="fas fa-keyboard"></i>
-                    Direct Entry
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                    직접 입력
                 </button>
             </div>
 
@@ -740,40 +728,29 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
             {inputMode === 'file' && !currentFile && (
                 <div
                     ref={dropZoneRef}
-                    className="dropzone p-10 sm:p-20 flex flex-col items-center justify-center bg-white/60 shadow-inner"
+                    className="dropzone p-10 flex flex-col items-center justify-center"
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
-                    <div className="w-24 h-24 rounded-[2rem] bg-[#FFEFE6] flex items-center justify-center mb-8 float-animation">
-                        <i className="fas fa-cloud-sun text-4xl text-[#FF9E85]"></i>
+                    <div className="w-14 h-14 step1-gradient rounded-2xl flex items-center justify-center mb-4 float-animation" style={{ boxShadow: '0 4px 14px rgba(249,115,22,0.25)' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     </div>
-                    <h3 className="text-3xl font-serif text-[#2D2D2D] mb-3 text-center">Capture your magic</h3>
-                    <p className="text-slate-400 text-sm font-bold mb-8 text-center max-w-xs">학습 원고를 업로드하거나 촬영하여 자동으로 분석하세요.</p>
+                    <h3 className="font-bold text-slate-900 text-lg mb-1 text-center">파일 업로드 또는 드래그</h3>
+                    <p className="text-slate-400 text-sm mb-5 text-center">AI OCR로 학습 데이터를 자동 추출합니다</p>
 
-                    {/* 액션 버튼 그룹 (Soft Pill Styles) */}
-                    <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xs">
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="btn-primary !bg-[#9B87F5] !from-[#9B87F5] !to-[#8170FF]"
-                        >
-                            <i className="fas fa-plus mr-2"></i>
-                            Select File
+                    <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+                        <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-primary flex-1">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            파일 선택
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => cameraInputRef.current?.click()}
-                            className="px-8 py-4 bg-[#FFEFE6] text-[#FF9E85] font-black rounded-full hover:bg-[#FFE4D6] transition-all flex items-center justify-center shadow-lg shadow-orange-50"
-                        >
-                            <i className="fas fa-camera mr-2"></i>
-                            Take Photo
+                        <button type="button" onClick={() => cameraInputRef.current?.click()} className="btn btn-step1 flex-1">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            촬영
                         </button>
                     </div>
 
-                    <p className="text-slate-300 text-[11px] font-black uppercase tracking-widest mt-6">
-                        PDF • JPG • PNG • WEBP
-                    </p>
+                    <p className="text-slate-400 text-xs mt-5">PDF · JPG · PNG · WEBP</p>
 
                     {/* 기존 파일 선택 input (숨김) */}
                     <input
@@ -804,7 +781,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                             className={cn(
                                 "flex-1 p-5 rounded-[2rem] font-black text-sm transition-all duration-300 flex items-center justify-center gap-3 shadow-lg",
                                 manualSubTab === 'word'
-                                    ? "bg-[#FFEFE6] text-[#FF9E85] ring-4 ring-[#FF9E85]/5"
+                                    ? "bg-[#FFF7ED] text-[#F97316] ring-4 ring-[#F97316]/5"
                                     : "bg-white text-slate-400 border border-slate-50"
                             )}
                         >
@@ -818,7 +795,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                             className={cn(
                                 "flex-1 p-5 rounded-[2rem] font-black text-sm transition-all duration-300 flex items-center justify-center gap-3 shadow-lg",
                                 manualSubTab === 'sentence'
-                                    ? "bg-[#E6FFFA] text-[#4FD1C5] ring-4 ring-[#4FD1C5]/5"
+                                    ? "bg-[#F0FDFA] text-[#14B8A6] ring-4 ring-[#14B8A6]/5"
                                     : "bg-white text-slate-400 border border-slate-50"
                             )}
                         >
@@ -832,10 +809,10 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                     {/* 입력된 항목 목록 (Minimalist Cards) */}
                     {manualEntries.length === 0 ? (
                         <div className="card p-20 text-center bg-white/40">
-                            <div className="w-24 h-24 rounded-[2.5rem] bg-[#E0D7FF]/30 flex items-center justify-center mx-auto mb-6 float-animation">
-                                <i className="fas fa-feather text-4xl text-[#9B87F5]"></i>
+                            <div className="w-24 h-24 rounded-[2.5rem] bg-[#EEF2FF]/30 flex items-center justify-center mx-auto mb-6 float-animation">
+                                <i className="fas fa-feather text-4xl text-[#6366F1]"></i>
                             </div>
-                            <p className="text-[#2D2D2D] font-serif text-xl">Empty pocket</p>
+                            <p className="text-[#0F172A] font-serif text-xl">Empty pocket</p>
                             <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest">Add your first magic content above</p>
                         </div>
                     ) : (
@@ -858,7 +835,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                             </div>
                                             <span className={cn(
                                                 "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
-                                                entry.type === 'word' ? "bg-[#FFEFE6] text-[#FF9E85]" : "bg-[#E6FFFA] text-[#4FD1C5]"
+                                                entry.type === 'word' ? "bg-[#FFF7ED] text-[#F97316]" : "bg-[#F0FDFA] text-[#14B8A6]"
                                             )}>
                                                 {entry.type === 'word' ? 'Vocabulary' : 'Sentence'}
                                             </span>
@@ -1040,7 +1017,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                 <i className="fas fa-file-pdf text-3xl text-rose-300"></i>
                             )}
                         </div>
-                        <h4 className="text-2xl font-serif text-[#2D2D2D] mb-1">{currentFile.name}</h4>
+                        <h4 className="text-2xl font-serif text-[#0F172A] mb-1">{currentFile.name}</h4>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">
                             {(currentFile.size / (1024 * 1024)).toFixed(2)} MB • {currentFile.type.split('/')[1].toUpperCase()}
                         </p>
@@ -1078,7 +1055,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                             <button
                                 onClick={handleReset}
                                 disabled={isProcessing}
-                                className="h-16 rounded-full font-black text-slate-400 hover:text-[#9B87F5] transition-all uppercase tracking-widest text-xs"
+                                className="h-16 rounded-full font-black text-slate-400 hover:text-[#6366F1] transition-all uppercase tracking-widest text-xs"
                             >
                                 <i className="fas fa-redo mr-2 text-[10px]"></i>
                                 Change File
@@ -1091,7 +1068,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                         <div className="bg-[#F8F9FF] p-8 space-y-6">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-[#E0D7FF] text-[#9B87F5] flex items-center justify-center shadow-sm">
+                                    <div className="w-8 h-8 rounded-full bg-[#EEF2FF] text-[#6366F1] flex items-center justify-center shadow-sm">
                                         <i className={cn(
                                             "fas text-xs",
                                             progress <= 30 ? "fa-file-import" :
@@ -1099,18 +1076,18 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                     progress <= 80 ? "fa-puzzle-piece" : "fa-check"
                                         )}></i>
                                     </div>
-                                    <p className="text-sm font-bold text-[#2D2D2D]">
+                                    <p className="text-sm font-bold text-[#0F172A]">
                                         {progress <= 30 ? "Reading document..." :
                                             progress <= 50 ? "Thinking with AI..." :
                                                 progress <= 80 ? "Structuring content..." : "Almost there!"}
                                     </p>
                                 </div>
-                                <span className="font-black text-[#9B87F5] text-sm tabular-nums">{progress}%</span>
+                                <span className="font-black text-[#6366F1] text-sm tabular-nums">{progress}%</span>
                             </div>
 
                             <div className="h-3 w-full bg-white rounded-full overflow-hidden shadow-inner">
                                 <div
-                                    className="h-full bg-gradient-to-r from-[#9B87F5] to-[#8170FF] transition-all duration-700 relative overflow-hidden"
+                                    className="h-full bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] transition-all duration-700 relative overflow-hidden"
                                     style={{ width: `${progress}%` }}
                                 >
                                     <div className="absolute inset-0 bg-[#ffffff30] animate-shimmer" />
@@ -1121,7 +1098,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                 {['Reading', 'AI Analysis', 'Structuring', 'Finalizing'].map((step, i) => (
                                     <span key={step} className={cn(
                                         "text-[9px] font-black uppercase tracking-widest transition-colors",
-                                        progress >= (i + 1) * 25 ? "text-[#9B87F5]" : "text-slate-300"
+                                        progress >= (i + 1) * 25 ? "text-[#6366F1]" : "text-slate-300"
                                     )}>{step}</span>
                                 ))}
                             </div>
@@ -1148,39 +1125,39 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                 <div className="space-y-12 animate-fade-in pb-20">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="card !p-6 flex items-center gap-5 bg-white/60">
-                            <div className="w-14 h-14 rounded-2xl bg-[#E0D7FF]/40 text-[#9B87F5] flex items-center justify-center shadow-sm">
+                            <div className="w-14 h-14 rounded-2xl bg-[#EEF2FF]/40 text-[#6366F1] flex items-center justify-center shadow-sm">
                                 <i className="fas fa-cubes text-xl"></i>
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Blocks</p>
-                                <p className="text-2xl font-serif text-[#2D2D2D]">{results.metadata.totalBlocks}</p>
+                                <p className="text-2xl font-serif text-[#0F172A]">{results.metadata.totalBlocks}</p>
                             </div>
                         </div>
                         <div className="card !p-6 flex items-center gap-5 bg-white/60">
-                            <div className="w-14 h-14 rounded-2xl bg-[#E6FFFA]/40 text-[#4FD1C5] flex items-center justify-center shadow-sm">
+                            <div className="w-14 h-14 rounded-2xl bg-[#F0FDFA]/40 text-[#14B8A6] flex items-center justify-center shadow-sm">
                                 <i className="fas fa-copy text-xl"></i>
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Pages</p>
-                                <p className="text-2xl font-serif text-[#2D2D2D]">{results.metadata.pageCount}</p>
+                                <p className="text-2xl font-serif text-[#0F172A]">{results.metadata.pageCount}</p>
                             </div>
                         </div>
                         <div className="card !p-6 flex items-center gap-5 bg-white/60">
-                            <div className="w-14 h-14 rounded-2xl bg-[#FFEFE6]/40 text-[#FF9E85] flex items-center justify-center shadow-sm">
+                            <div className="w-14 h-14 rounded-2xl bg-[#FFF7ED]/40 text-[#F97316] flex items-center justify-center shadow-sm">
                                 <i className="fas fa-globe text-xl"></i>
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Languages</p>
-                                <p className="text-2xl font-serif text-[#2D2D2D]">{results.metadata.languages.length}</p>
+                                <p className="text-2xl font-serif text-[#0F172A]">{results.metadata.languages.length}</p>
                             </div>
                         </div>
                         <div className="card !p-6 flex items-center gap-5 bg-white/60">
-                            <div className="w-14 h-14 rounded-2xl bg-[#F8F9FF] text-[#9B87F5] flex items-center justify-center shadow-sm">
+                            <div className="w-14 h-14 rounded-2xl bg-[#F8F9FF] text-[#6366F1] flex items-center justify-center shadow-sm">
                                 <i className="fas fa-bolt text-xl"></i>
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Time taken</p>
-                                <p className="text-2xl font-serif text-[#2D2D2D]">{(results.metadata.processingTime / 1000).toFixed(1)}s</p>
+                                <p className="text-2xl font-serif text-[#0F172A]">{(results.metadata.processingTime / 1000).toFixed(1)}s</p>
                             </div>
                         </div>
                     </div>
@@ -1199,7 +1176,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                     className={cn(
                                         'flex-1 min-w-[100px] py-4 rounded-full font-black text-xs transition-all duration-500 flex items-center justify-center gap-3',
                                         activeTab === tab.id
-                                            ? 'bg-white text-[#9B87F5] shadow-md'
+                                            ? 'bg-white text-[#6366F1] shadow-md'
                                             : 'text-slate-400 hover:bg-white/40'
                                     )}
                                 >
@@ -1249,18 +1226,18 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                         <span className="text-[10px] font-black">{Math.round(item.confidence * 100)}%</span>
                                                     </div>
                                                 </div>
-                                                <p className="text-2xl font-serif text-[#2D2D2D] leading-relaxed">{item.original}</p>
+                                                <p className="text-2xl font-serif text-[#0F172A] leading-relaxed">{item.original}</p>
                                                 {item.reading && (
                                                     <p className="text-sm font-bold text-slate-400 italic bg-slate-50/50 p-3 rounded-2xl border border-slate-50 inline-block">
                                                         {item.reading}
                                                     </p>
                                                 )}
-                                                <div className="bg-[#E0D7FF]/30 p-5 rounded-[1.5rem] border border-[#E0D7FF]/20">
+                                                <div className="bg-[#EEF2FF]/30 p-5 rounded-[1.5rem] border border-[#EEF2FF]/20">
                                                     <div className="flex items-center gap-2 mb-1 opacity-40">
                                                         <i className="fas fa-language text-[10px]"></i>
                                                         <span className="text-[9px] font-black uppercase tracking-widest">Translation</span>
                                                     </div>
-                                                    <p className="text-base font-black text-[#8170FF]">{item.translation}</p>
+                                                    <p className="text-base font-black text-[#8B5CF6]">{item.translation}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -1275,18 +1252,18 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                         <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
                             {results.pageSummaries?.map((pSum, idx) => (
                                 <div key={idx} className="card !p-0 overflow-hidden border-none bg-white">
-                                    <div className="bg-[#2D2D2D] px-8 py-4 flex items-center justify-between">
+                                    <div className="bg-[#0F172A] px-8 py-4 flex items-center justify-between">
                                         <h3 className="text-white font-serif font-black text-sm italic">
                                             Page {pSum.page} Analysis
                                         </h3>
-                                        <div className="w-2 h-2 rounded-full bg-[#9B87F5] animate-pulse"></div>
+                                        <div className="w-2 h-2 rounded-full bg-[#6366F1] animate-pulse"></div>
                                     </div>
                                     <div className="p-8 space-y-8">
                                         {/* 주요 주제 */}
                                         {pSum.topic && (
                                             <div className="space-y-3">
-                                                <p className="text-[10px] font-black text-[#9B87F5] uppercase tracking-[0.2em]">Primary Topic</p>
-                                                <p className="text-3xl font-serif text-[#2D2D2D] leading-tight">
+                                                <p className="text-[10px] font-black text-[#6366F1] uppercase tracking-[0.2em]">Primary Topic</p>
+                                                <p className="text-3xl font-serif text-[#0F172A] leading-tight">
                                                     {pSum.topic}
                                                 </p>
                                             </div>
@@ -1297,9 +1274,9 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                             {pSum.learningGoal && (
                                                 <div className="bg-[#F8F9FF] p-6 rounded-[2rem] border border-slate-50">
                                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                        <i className="fas fa-bullseye text-[#9B87F5]"></i> Learning Goal
+                                                        <i className="fas fa-bullseye text-[#6366F1]"></i> Learning Goal
                                                     </p>
-                                                    <p className="text-sm font-bold text-[#2D2D2D]">
+                                                    <p className="text-sm font-bold text-[#0F172A]">
                                                         {pSum.learningGoal}
                                                     </p>
                                                 </div>
@@ -1307,9 +1284,9 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                             {pSum.learningDirection && (
                                                 <div className="bg-[#F8F9FF] p-6 rounded-[2rem] border border-slate-50">
                                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                        <i className="fas fa-compass text-[#FF9E85]"></i> Roadmap
+                                                        <i className="fas fa-compass text-[#F97316]"></i> Roadmap
                                                     </p>
-                                                    <p className="text-sm font-bold text-[#2D2D2D]">
+                                                    <p className="text-sm font-bold text-[#0F172A]">
                                                         {pSum.learningDirection}
                                                     </p>
                                                 </div>
@@ -1318,12 +1295,12 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
 
                                         {/* 핵심 포인트 */}
                                         {pSum.keyPoints && pSum.keyPoints.length > 0 && (
-                                            <div className="bg-[#2D2D2D] p-8 rounded-[2.5rem] shadow-xl text-white">
-                                                <p className="text-[9px] font-black text-[#9B87F5] uppercase tracking-widest mb-6 block">Key Learning Points</p>
+                                            <div className="bg-[#0F172A] p-8 rounded-[2.5rem] shadow-xl text-white">
+                                                <p className="text-[9px] font-black text-[#6366F1] uppercase tracking-widest mb-6 block">Key Learning Points</p>
                                                 <ul className="space-y-4">
                                                     {pSum.keyPoints.map((point, i) => (
                                                         <li key={i} className="flex items-start gap-4">
-                                                            <span className="font-serif italic text-[#9B87F5] text-lg font-black leading-none pt-0.5">
+                                                            <span className="font-serif italic text-[#6366F1] text-lg font-black leading-none pt-0.5">
                                                                 {i + 1}.
                                                             </span>
                                                             <span className="text-sm font-medium leading-relaxed opacity-90">
@@ -1343,7 +1320,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                     <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                                         <i className="fas fa-file-circle-question text-3xl text-slate-200"></i>
                                     </div>
-                                    <p className="text-[#2D2D2D] font-serif text-xl">No insights yet</p>
+                                    <p className="text-[#0F172A] font-serif text-xl">No insights yet</p>
                                     <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest">AI hasn't generated summary for this file</p>
                                 </div>
                             )}
@@ -1370,14 +1347,14 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between px-2">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-[#FFEFE6] text-[#FF9E85] flex items-center justify-center">
+                                        <div className="w-8 h-8 rounded-full bg-[#FFF7ED] text-[#F97316] flex items-center justify-center">
                                             <i className="fas fa-spell-check text-[10px]"></i>
                                         </div>
-                                        <h3 className="text-sm font-black text-[#2D2D2D] uppercase tracking-widest">Essential Vocabulary</h3>
+                                        <h3 className="text-sm font-black text-[#0F172A] uppercase tracking-widest">Essential Vocabulary</h3>
                                     </div>
                                     <button
                                         onClick={() => addAggregatedItem('extractedVocabulary')}
-                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#9B87F5] transition-all"
+                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#6366F1] transition-all"
                                     >
                                         <i className="fas fa-plus text-[10px]"></i>
                                     </button>
@@ -1391,7 +1368,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                     <input
                                                         value={item.text}
                                                         onChange={(e) => updateAggregatedItem('extractedVocabulary', i, { text: e.target.value })}
-                                                        className="flex-[2] bg-slate-50 border-none rounded-2xl px-4 py-3 text-lg font-serif font-black text-[#2D2D2D] focus:ring-2 focus:ring-[#FFEFE6]"
+                                                        className="flex-[2] bg-slate-50 border-none rounded-2xl px-4 py-3 text-lg font-serif font-black text-[#0F172A] focus:ring-2 focus:ring-[#FFF7ED]"
                                                         placeholder="Magic Word"
                                                     />
                                                     <input
@@ -1401,11 +1378,11 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                         placeholder="Phonetic"
                                                     />
                                                 </div>
-                                                <div className="bg-[#FFEFE6]/40 p-4 rounded-2xl border border-[#FFEFE6]/20">
+                                                <div className="bg-[#FFF7ED]/40 p-4 rounded-2xl border border-[#FFF7ED]/20">
                                                     <input
                                                         value={item.translation || ''}
                                                         onChange={(e) => updateAggregatedItem('extractedVocabulary', i, { translation: e.target.value })}
-                                                        className="w-full bg-transparent border-none p-0 text-sm font-black text-[#FF9E85] focus:ring-0 placeholder-[#FF9E85]/50"
+                                                        className="w-full bg-transparent border-none p-0 text-sm font-black text-[#F97316] focus:ring-0 placeholder-[#F97316]/50"
                                                         placeholder="Add Translation"
                                                     />
                                                 </div>
@@ -1430,14 +1407,14 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between px-2">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-[#E6FFFA] text-[#4FD1C5] flex items-center justify-center">
+                                        <div className="w-8 h-8 rounded-full bg-[#F0FDFA] text-[#14B8A6] flex items-center justify-center">
                                             <i className="fas fa-quote-left text-[10px]"></i>
                                         </div>
-                                        <h3 className="text-sm font-black text-[#2D2D2D] uppercase tracking-widest">Smart Sentences</h3>
+                                        <h3 className="text-sm font-black text-[#0F172A] uppercase tracking-widest">Smart Sentences</h3>
                                     </div>
                                     <button
                                         onClick={() => addAggregatedItem('extractedSentences')}
-                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#9B87F5] transition-all"
+                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#6366F1] transition-all"
                                     >
                                         <i className="fas fa-plus text-[10px]"></i>
                                     </button>
@@ -1445,12 +1422,12 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
 
                                 <div className="space-y-4">
                                     {results.aggregatedSet?.extractedSentences?.map((item, i) => (
-                                        <div key={i} className="card !p-8 bg-white border-2 border-slate-50 hover:border-[#E6FFFA] transition-all duration-300 group relative">
+                                        <div key={i} className="card !p-8 bg-white border-2 border-slate-50 hover:border-[#F0FDFA] transition-all duration-300 group relative">
                                             <div className="space-y-6">
                                                 <textarea
                                                     value={item.text}
                                                     onChange={(e) => updateAggregatedItem('extractedSentences', i, { text: e.target.value })}
-                                                    className="w-full bg-transparent border-none p-0 text-xl font-serif font-black text-[#2D2D2D] focus:ring-0 resize-none h-auto min-h-[60px]"
+                                                    className="w-full bg-transparent border-none p-0 text-xl font-serif font-black text-[#0F172A] focus:ring-0 resize-none h-auto min-h-[60px]"
                                                     placeholder="Enter Magic Sentence..."
                                                 />
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1460,11 +1437,11 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                         className="bg-slate-50/50 border-none rounded-2xl px-5 py-3 text-xs font-bold text-slate-400 italic"
                                                         placeholder="Phonetic reading..."
                                                     />
-                                                    <div className="bg-[#E6FFFA]/40 px-5 py-3 rounded-2xl">
+                                                    <div className="bg-[#F0FDFA]/40 px-5 py-3 rounded-2xl">
                                                         <input
                                                             value={item.translation || ''}
                                                             onChange={(e) => updateAggregatedItem('extractedSentences', i, { translation: e.target.value })}
-                                                            className="w-full bg-transparent border-none p-0 text-sm font-black text-[#4FD1C5] focus:ring-0"
+                                                            className="w-full bg-transparent border-none p-0 text-sm font-black text-[#14B8A6] focus:ring-0"
                                                             placeholder="Translation..."
                                                         />
                                                     </div>
@@ -1490,17 +1467,17 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between px-2">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-[#E0D7FF] text-[#9B87F5] flex items-center justify-center">
+                                        <div className="w-8 h-8 rounded-full bg-[#EEF2FF] text-[#6366F1] flex items-center justify-center">
                                             <i className="fas fa-magic text-[10px]"></i>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <h3 className="text-sm font-black text-[#2D2D2D] uppercase tracking-widest">AI Insights</h3>
-                                            <span className="px-2 py-0.5 rounded-full bg-[#9B87F5] text-white text-[8px] font-black uppercase">Magic</span>
+                                            <h3 className="text-sm font-black text-[#0F172A] uppercase tracking-widest">AI Insights</h3>
+                                            <span className="px-2 py-0.5 rounded-full bg-[#6366F1] text-white text-[8px] font-black uppercase">Magic</span>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => addAggregatedItem('relatedVocabulary')}
-                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#9B87F5] transition-all"
+                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#6366F1] transition-all"
                                     >
                                         <i className="fas fa-plus text-[10px]"></i>
                                     </button>
@@ -1514,7 +1491,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                     <input
                                                         value={item.text}
                                                         onChange={(e) => updateAggregatedItem('relatedVocabulary', i, { text: e.target.value })}
-                                                        className="flex-[2] bg-white border-none rounded-2xl px-4 py-3 text-lg font-serif font-black text-[#2D2D2D] focus:ring-2 focus:ring-[#E0D7FF]"
+                                                        className="flex-[2] bg-white border-none rounded-2xl px-4 py-3 text-lg font-serif font-black text-[#0F172A] focus:ring-2 focus:ring-[#EEF2FF]"
                                                         placeholder="AI Word"
                                                     />
                                                     <input
@@ -1528,7 +1505,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                     <input
                                                         value={item.translation || ''}
                                                         onChange={(e) => updateAggregatedItem('relatedVocabulary', i, { translation: e.target.value })}
-                                                        className="w-full bg-transparent border-none p-0 text-sm font-black text-[#9B87F5] focus:ring-0 placeholder-[#9B87F5]/50"
+                                                        className="w-full bg-transparent border-none p-0 text-sm font-black text-[#6366F1] focus:ring-0 placeholder-[#6366F1]/50"
                                                         placeholder="Add Translation"
                                                     />
                                                 </div>
@@ -1557,13 +1534,13 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                             <i className="fas fa-lightbulb text-[10px]"></i>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <h3 className="text-sm font-black text-[#2D2D2D] uppercase tracking-widest">AI Lessons</h3>
+                                            <h3 className="text-sm font-black text-[#0F172A] uppercase tracking-widest">AI Lessons</h3>
                                             <span className="px-2 py-0.5 rounded-full bg-[#FF8585] text-white text-[8px] font-black uppercase">Dynamic</span>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => addAggregatedItem('relatedSentences')}
-                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#9B87F5] transition-all"
+                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-300 hover:text-[#6366F1] transition-all"
                                     >
                                         <i className="fas fa-plus text-[10px]"></i>
                                     </button>
@@ -1579,7 +1556,7 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                                                 <textarea
                                                     value={item.text}
                                                     onChange={(e) => updateAggregatedItem('relatedSentences', i, { text: e.target.value })}
-                                                    className="w-full bg-transparent border-none p-0 text-xl font-serif font-black text-[#2D2D2D] focus:ring-0 resize-none h-auto min-h-[60px]"
+                                                    className="w-full bg-transparent border-none p-0 text-xl font-serif font-black text-[#0F172A] focus:ring-0 resize-none h-auto min-h-[60px]"
                                                     placeholder="AI Generated Sentence..."
                                                 />
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1637,14 +1614,14 @@ export const Step1Acquisition: React.FC<Step1AcquisitionProps> = ({
                     <div className="flex gap-4 pt-10 mt-10 border-t border-slate-50">
                         <button
                             onClick={handleReset}
-                            className="flex-1 h-16 rounded-[2rem] bg-white text-slate-400 font-black text-xs uppercase tracking-widest shadow-lg hover:text-[#FF9E85] transition-all"
+                            className="flex-1 h-16 rounded-[2rem] bg-white text-slate-400 font-black text-xs uppercase tracking-widest shadow-lg hover:text-[#F97316] transition-all"
                         >
                             <i className="fas fa-redo-alt mr-3"></i>
                             Start Over
                         </button>
                         <button
                             onClick={handleProceed}
-                            className="btn-primary flex-[2] !h-16 !from-[#9B87F5] !to-[#8170FF] !rounded-[2rem] !text-sm"
+                            className="btn-primary flex-[2] !h-16 !from-[#6366F1] !to-[#8B5CF6] !rounded-[2rem] !text-sm"
                         >
                             <span>Confirm & Continue</span>
                             <i className="fas fa-magic ml-3"></i>

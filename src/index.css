@@ -2,136 +2,415 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Google Fonts Import ===== */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
-
-/* ===== 디자인 토큰 (Tiimo Inspired Palette) ===== */
+/* ============================================================
+   DESIGN TOKENS — Bright & Trendy
+   ============================================================ */
 :root {
-  --color-primary: #9B87F5;
-  /* 감성적인 라벤더 */
-  --color-primary-soft: #E0D7FF;
-  /* 부드러운 라벤더 */
-  --color-secondary: #FFB3A1;
-  /* 피치 핑크 */
-  --color-secondary-soft: #FFEFE6;
-  --color-success: #82E9DE;
-  /* 민트 그린 */
-  --color-success-soft: #E6FFFA;
-  --color-warning: #FFD970;
-  /* 연노랑 */
-  --color-warning-soft: #FFF9E6;
-  --color-dark: #2D2D2D;
-  /* 부드러운 블랙 */
-  --color-light: #FFFFFF;
+  --color-primary: #6366F1;
+  --color-primary-dark: #4F46E5;
+  --color-primary-light: #EEF2FF;
+  --color-secondary: #8B5CF6;
+  --color-surface: #FFFFFF;
+  --color-bg: #F8FAFF;
+  --color-border: #E2E8F0;
+  --color-text: #0F172A;
+  --color-muted: #64748B;
 
-  /* 폰트 정의 */
-  --font-serif: 'Noto Sans KR', sans-serif;
-  --font-sans: 'Noto Sans KR', sans-serif;
+  --step1-from: #F97316;
+  --step1-to: #FB923C;
+  --step1-light: #FFF7ED;
+  --step2-from: #6366F1;
+  --step2-to: #8B5CF6;
+  --step2-light: #EEF2FF;
+  --step3-from: #14B8A6;
+  --step3-to: #06B6D4;
+  --step3-light: #F0FDFA;
 
-  /* 스텝별 테마 연동 */
-  --step1-color: var(--color-secondary);
-  --step2-color: var(--color-primary);
-  --step3-color: var(--color-success);
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
 }
 
-/* ===== 글로벌 레이아웃 ===== */
+/* ============================================================
+   BASE
+   ============================================================ */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  font-family: var(--font-sans);
-  background: radial-gradient(circle at top left, var(--color-primary-soft), transparent 40%),
-    radial-gradient(circle at bottom right, var(--color-secondary-soft), transparent 40%),
-    #FFFFFF;
-  color: var(--color-dark);
-  min-height: 100vh;
+  font-family: "Inter", "Noto Sans KR", system-ui, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   word-break: keep-all;
+  min-height: 100vh;
 }
 
-h1,
-h2,
-h3,
-.font-serif {
-  font-family: var(--font-serif);
-  font-weight: 700;
+h1, h2, h3, h4 {
+  font-family: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
   letter-spacing: -0.02em;
 }
 
-/* ===== 컴포넌트 스타일 리팩토링 ===== */
+/* ============================================================
+   COMPONENTS
+   ============================================================ */
 
-/* 부드러운 카드 (Soft Card) */
+/* --- Card --- */
 .card {
-  @apply bg-white/60 backdrop-blur-md border border-white/40 rounded-[2.5rem] p-6 transition-all duration-500;
-  box-shadow: 0 20px 40px -10px rgba(155, 135, 245, 0.1);
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.card:hover {
-  @apply bg-white/80;
-  box-shadow: 0 30px 60px -12px rgba(155, 135, 245, 0.15);
-  transform: translateY(-4px);
+.card-hover {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
 }
 
-/* 프리미엄 버튼 (Pill Buttons) */
+.card-hover:hover {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  transform: translateY(-2px);
+}
+
+/* --- Buttons --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  border-radius: 12px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  outline: none;
+  min-height: 44px;
+  padding: 0 20px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .btn-primary {
-  @apply px-8 py-4 bg-gradient-to-br from-[#9B87F5] to-[#8170FF] text-white font-black rounded-full shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] transition-all duration-300 active:scale-95;
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  color: white;
+  box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.25);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 6px 20px 0 rgba(99, 102, 241, 0.35);
+  filter: brightness(1.08);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
 }
 
 .btn-secondary {
-  @apply px-8 py-4 bg-[#FFEFE6] text-[#FF9E85] font-black rounded-full hover:bg-[#FFE4D6] transition-all duration-300 active:scale-95 border-none;
+  background: white;
+  color: #374151;
+  border: 1.5px solid #E2E8F0;
 }
 
-.btn-success {
-  @apply px-8 py-4 bg-[#E6FFFA] text-[#4FD1C5] font-black rounded-full hover:bg-[#D4FFF5] transition-all duration-300 active:scale-95;
+.btn-secondary:hover {
+  background: #F9FAFB;
+  border-color: #CBD5E1;
 }
 
-.btn-warning {
-  @apply px-8 py-4 bg-[#FFF9E6] text-[#D97706] font-black rounded-full hover:bg-[#FFF4D1] transition-all duration-300 active:scale-95;
+.btn-secondary:active {
+  transform: scale(0.98);
 }
 
-/* 인풋 필드 (Round Inputs) */
+.btn-step1 {
+  background: linear-gradient(135deg, #F97316, #FB923C);
+  color: white;
+  box-shadow: 0 4px 14px 0 rgba(249, 115, 22, 0.25);
+}
+
+.btn-step1:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 20px 0 rgba(249, 115, 22, 0.35);
+}
+
+.btn-step1:active {
+  transform: scale(0.98);
+}
+
+.btn-step3 {
+  background: linear-gradient(135deg, #14B8A6, #06B6D4);
+  color: white;
+  box-shadow: 0 4px 14px 0 rgba(20, 184, 166, 0.25);
+}
+
+.btn-step3:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 20px 0 rgba(20, 184, 166, 0.35);
+}
+
+.btn-step3:active {
+  transform: scale(0.98);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #64748B;
+}
+
+.btn-ghost:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.btn-ghost:active {
+  transform: scale(0.98);
+}
+
+.btn-danger {
+  background: #EF4444;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #DC2626;
+}
+
+.btn-danger:active {
+  transform: scale(0.98);
+}
+
+.btn-sm {
+  font-size: 13px;
+  border-radius: 10px;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.btn-lg {
+  font-size: 16px;
+  border-radius: 14px;
+  min-height: 52px;
+  padding: 0 28px;
+}
+
+/* --- Input --- */
 .input-field {
-  @apply w-full bg-white/80 border-2 border-[#E0D7FF]/30 px-6 py-4 rounded-[2rem] font-bold text-slate-700 placeholder:text-slate-300 focus:bg-white focus:border-[#9B87F5] focus:ring-4 focus:ring-[#9B87F5]/10 outline-none transition-all duration-300;
+  width: 100%;
+  background: white;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  color: #0F172A;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  min-height: 44px;
 }
 
-/* ===== 드롭존 스타일 (Tiimo Style) ===== */
+.input-field::placeholder {
+  color: #94A3B8;
+}
+
+.input-field:hover {
+  border-color: #CBD5E1;
+}
+
+.input-field:focus {
+  border-color: #6366F1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+/* --- Tab Bar --- */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  background: #F1F5F9;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab-item.active {
+  background: white;
+  color: #0F172A;
+  box-shadow: var(--shadow-card);
+}
+
+/* --- Badge --- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.badge-step1 { background: #FFF7ED; color: #EA580C; }
+.badge-step2 { background: #EEF2FF; color: #4F46E5; }
+.badge-step3 { background: #F0FDFA; color: #0D9488; }
+.badge-primary { background: #EEF2FF; color: #4F46E5; }
+.badge-success { background: #DCFCE7; color: #16A34A; }
+.badge-warning { background: #FEF3C7; color: #D97706; }
+.badge-error { background: #FEE2E2; color: #DC2626; }
+.badge-neutral { background: #F1F5F9; color: #475569; }
+
+/* --- Dropzone --- */
 .dropzone {
-  @apply border-4 border-dashed border-[#E0D7FF] rounded-[3rem] bg-[#E0D7FF]/5 hover:bg-[#E0D7FF]/10 hover:border-[#9B87F5] transition-all duration-500 cursor-pointer flex flex-col items-center justify-center;
-  min-height: 240px;
+  position: relative;
+  border: 2px dashed #C7D2FE;
+  background: rgba(238, 242, 255, 0.3);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.dropzone:hover {
+  border-color: #6366F1;
+  background: rgba(238, 242, 255, 0.6);
 }
 
 .dropzone.active {
-  @apply bg-[#E0D7FF]/20 border-[#9B87F5] scale-[1.02];
-  box-shadow: 0 0 50px rgba(155, 135, 245, 0.2);
+  border-color: #6366F1;
+  background: rgba(238, 242, 255, 0.8);
+  transform: scale(1.01);
 }
 
-/* ===== 애니메이션 ===== */
-@keyframes float {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-12px);
-  }
+/* --- Gradient Utilities --- */
+.step1-gradient {
+  background: linear-gradient(135deg, #F97316, #FB923C);
 }
 
+.step2-gradient {
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+}
+
+.step3-gradient {
+  background: linear-gradient(135deg, #14B8A6, #06B6D4);
+}
+
+.primary-gradient {
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+}
+
+/* --- Loading Skeleton --- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #F1F5F9;
+  border-radius: 8px;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.7) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* --- Spinner --- */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #E2E8F0;
+  border-top-color: #6366F1;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+.spinner-sm {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #E2E8F0;
+  border-top-color: #6366F1;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Float --- */
 .float-animation {
   animation: float 4s ease-in-out infinite;
 }
 
-/* 셰이프 장식 유틸리티 */
-.tiimo-bg-circle {
-  @apply absolute -z-10 rounded-full blur-3xl opacity-30;
-  background: radial-gradient(circle, var(--color-primary), transparent);
+/* --- Section Labels --- */
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-/* ===== 글래스모피즘 헤더 ===== */
-header {
-  @apply bg-white/60 backdrop-blur-2xl border-b border-[#E0D7FF]/20;
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
-/* 스크롤바 커스터마이징 */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -139,25 +418,38 @@ header {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-primary-soft);
-  border-radius: 10px;
-  border: 4px solid #FFFFFF;
+  background: #CBD5E1;
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
+  background: #94A3B8;
 }
 
-/* ===== 모바일 최적화 ===== */
-@media (max-width: 768px) {
+/* ============================================================
+   MOBILE
+   ============================================================ */
+@media (max-width: 640px) {
   .card {
-    @apply rounded-[2rem] p-5;
+    border-radius: 14px;
   }
 
-  .btn-primary,
-  .btn-secondary,
-  .btn-success,
-  .btn-warning {
-    @apply px-6 py-3.5 text-sm;
+  .btn-lg {
+    min-height: 48px;
   }
+
+  body {
+    font-size: 16px;
+  }
+}
+
+/* ============================================================
+   SAFE AREA (PWA / iPhone notch)
+   ============================================================ */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }

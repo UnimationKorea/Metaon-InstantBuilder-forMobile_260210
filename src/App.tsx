@@ -2,7 +2,7 @@
  * =========================================
  * Metaon Instant Content Builder - Mobile
  * =========================================
- * 모바일 전용 앱 - 카테고리 선택 + 3단계 진입
+ * Redesigned: Bright & Trendy UX (2026)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -25,7 +25,6 @@ import {
 } from '@/shared';
 
 
-
 // ===== 카테고리 바 컴포넌트 =====
 interface CategoryBarProps {
     hierarchy: PageHierarchy | null;
@@ -37,7 +36,6 @@ const CategoryBar: React.FC<CategoryBarProps> = ({ hierarchy, onHierarchyChange,
     const [storageMap, setStorageMap] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // DB에서 저장된 페이지 목록 조회
     useEffect(() => {
         const load = async () => {
             setLoading(true);
@@ -48,7 +46,6 @@ const CategoryBar: React.FC<CategoryBarProps> = ({ hierarchy, onHierarchyChange,
         load();
     }, []);
 
-    // classificationConfig 기반 전체 옵션 생성 (Step3와 동일 방식)
     const subjectOptions = ['Hanja', 'Chinese', 'Japanese', 'English', 'Korean']
         .slice(0, classificationConfig.subjectCount || 5);
 
@@ -58,81 +55,96 @@ const CategoryBar: React.FC<CategoryBarProps> = ({ hierarchy, onHierarchyChange,
         onHierarchyChange(updated);
     };
 
-    // 현재 hierarchy 값 (기본값 포함)
     const h = hierarchy || { subject: subjectOptions[0] || '', level: '1', set: '1', page: '1' };
 
+    const selectClass = "w-full h-10 px-3 text-sm font-semibold text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all cursor-pointer hover:border-slate-300 appearance-none";
+
     return (
-        <div className="bg-white border-b border-slate-200 px-4 py-3">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {/* Subject */}
-                <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                        {classificationConfig.subject || 'Subject'}
-                    </label>
-                    <select
-                        value={h.subject}
-                        onChange={e => handleChange('subject', e.target.value)}
-                        disabled={loading}
-                        className="w-full h-10 px-2 text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
-                    >
-                        {subjectOptions.map(s => (
-                            <option key={s} value={s}>{s}</option>
-                        ))}
-                    </select>
-                </div>
+        <div className="bg-white border-b border-slate-100 px-4 py-3">
+            <div className="max-w-md mx-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {/* Subject */}
+                    <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                            {classificationConfig.subject || 'Subject'}
+                        </label>
+                        <select
+                            value={h.subject}
+                            onChange={e => handleChange('subject', e.target.value)}
+                            disabled={loading}
+                            className={selectClass}
+                        >
+                            {subjectOptions.map(s => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </select>
+                    </div>
 
-                {/* Level / Package */}
-                <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                        {classificationConfig.label1 || 'Package'}
-                    </label>
-                    <select
-                        value={h.level}
-                        onChange={e => handleChange('level', e.target.value)}
-                        disabled={loading}
-                        className="w-full h-10 px-2 text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
-                    >
-                        {Array.from({ length: classificationConfig.label1Count || 1 }, (_, i) => String(i + 1)).map(l => {
-                            const exists = storageMap.some(m => m.subject === h.subject && m.level === l);
-                            return <option key={l} value={l} style={{ color: exists ? '#ef4444' : 'inherit' }}>{l}{exists ? ' (data)' : ''}</option>;
-                        })}
-                    </select>
-                </div>
+                    {/* Level */}
+                    <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                            {classificationConfig.label1 || 'Package'}
+                        </label>
+                        <select
+                            value={h.level}
+                            onChange={e => handleChange('level', e.target.value)}
+                            disabled={loading}
+                            className={selectClass}
+                        >
+                            {Array.from({ length: classificationConfig.label1Count || 1 }, (_, i) => String(i + 1)).map(l => {
+                                const exists = storageMap.some(m => m.subject === h.subject && m.level === l);
+                                return (
+                                    <option key={l} value={l}>
+                                        {exists ? `${l} ●` : l}
+                                    </option>
+                                );
+                            })}
+                        </select>
+                    </div>
 
-                {/* Set / Book */}
-                <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                        {classificationConfig.label2 || 'Book'}
-                    </label>
-                    <select
-                        value={h.set}
-                        onChange={e => handleChange('set', e.target.value)}
-                        disabled={loading}
-                        className="w-full h-10 px-2 text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
-                    >
-                        {Array.from({ length: classificationConfig.label2Count || 1 }, (_, i) => String(i + 1)).map(sn => {
-                            const exists = storageMap.some(m => m.subject === h.subject && m.level === h.level && m.set_num === sn);
-                            return <option key={sn} value={sn} style={{ color: exists ? '#ef4444' : 'inherit' }}>{sn}{exists ? ' (data)' : ''}</option>;
-                        })}
-                    </select>
-                </div>
+                    {/* Set */}
+                    <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                            {classificationConfig.label2 || 'Book'}
+                        </label>
+                        <select
+                            value={h.set}
+                            onChange={e => handleChange('set', e.target.value)}
+                            disabled={loading}
+                            className={selectClass}
+                        >
+                            {Array.from({ length: classificationConfig.label2Count || 1 }, (_, i) => String(i + 1)).map(sn => {
+                                const exists = storageMap.some(m => m.subject === h.subject && m.level === h.level && m.set_num === sn);
+                                return (
+                                    <option key={sn} value={sn}>
+                                        {exists ? `${sn} ●` : sn}
+                                    </option>
+                                );
+                            })}
+                        </select>
+                    </div>
 
-                {/* Page */}
-                <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                        {classificationConfig.label3 || 'Page'}
-                    </label>
-                    <select
-                        value={h.page}
-                        onChange={e => handleChange('page', e.target.value)}
-                        disabled={loading}
-                        className="w-full h-10 px-2 text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
-                    >
-                        {Array.from({ length: classificationConfig.label3Count || 1 }, (_, i) => String(i + 1)).map(pn => {
-                            const exists = storageMap.some(m => m.subject === h.subject && m.level === h.level && m.set_num === h.set && m.page_num === pn);
-                            return <option key={pn} value={pn} style={{ color: exists ? '#ef4444' : 'inherit', fontWeight: exists ? 'bold' : 'normal' }}>{pn}{exists ? ' ●' : ''}</option>;
-                        })}
-                    </select>
+                    {/* Page */}
+                    <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                            {classificationConfig.label3 || 'Page'}
+                        </label>
+                        <select
+                            value={h.page}
+                            onChange={e => handleChange('page', e.target.value)}
+                            disabled={loading}
+                            className={selectClass}
+                        >
+                            {Array.from({ length: classificationConfig.label3Count || 1 }, (_, i) => String(i + 1)).map(pn => {
+                                const exists = storageMap.some(m => m.subject === h.subject && m.level === h.level && m.set_num === h.set && m.page_num === pn);
+                                return (
+                                    <option key={pn} value={pn} style={{ fontWeight: exists ? '700' : '400' }}>
+                                        {exists ? `${pn} ●` : pn}
+                                    </option>
+                                );
+                            })}
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -144,7 +156,6 @@ const App: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // 전역 상태
     const [currentView, setCurrentView] = useState<'home' | 'step1' | 'step2' | 'step3'>('home');
     const [step1Data, setStep1Data] = useState<Step1Output | null>(null);
     const [step2Data, setStep2Data] = useState<Step2Session | null>(null);
@@ -161,21 +172,13 @@ const App: React.FC = () => {
         stateManager.getState().hierarchy || null
     );
 
-    // 페이지 데이터 존재 여부
     const [pageDataExists, setPageDataExists] = useState<boolean | null>(null);
     const [checkingPage, setCheckingPage] = useState(false);
-
-    // Step1 완료 여부 (세션 내)
     const [step1Completed, setStep1Completed] = useState(false);
-
-    // Step2 미저장 편집 여부
     const [isStep2Dirty, setIsStep2Dirty] = useState(false);
-
-    // 설정 모달
     const [showSettings, setShowSettings] = useState(false);
-
-    // 비용 추적
     const [totalCost, setTotalCost] = useState(0);
+
     const MODEL_RATES: Record<string, { input: number, output: number }> = {
         'gemini-2.5-pro': { input: 1.25, output: 3.75 },
         'gemini-2.5-flash': { input: 0.075, output: 0.30 },
@@ -183,7 +186,6 @@ const App: React.FC = () => {
     };
 
     const handleCostUpdate = useCallback((model: string, inputTokens: number, outputTokens: number) => {
-        // [Migration] 1.5, 2.0 모델 지원 종료 대응
         const actualModel = model.includes('gemini-1.5') || model.includes('gemini-2.0') ? 'gemini-2.5-flash' : model;
         const rates = MODEL_RATES[actualModel] || MODEL_RATES['gemini-2.5-flash'];
         const inputCost = (inputTokens / 1000000) * rates.input;
@@ -191,7 +193,6 @@ const App: React.FC = () => {
         setTotalCost(prev => prev + inputCost + outputCost);
     }, []);
 
-    // URL 동기화
     useEffect(() => {
         const path = location.pathname;
         if (path.includes('step1')) setCurrentView('step1');
@@ -200,7 +201,6 @@ const App: React.FC = () => {
         else setCurrentView('home');
     }, [location]);
 
-    // 상태 변경 구독
     useEffect(() => {
         const unsubscribe = stateManager.subscribe((state) => {
             setStep1Data(state.step1Data);
@@ -213,7 +213,6 @@ const App: React.FC = () => {
         return () => unsubscribe();
     }, []);
 
-    // 카테고리 변경 시 데이터 존재 여부 확인 + step2/step3에서 자동 데이터 로드
     useEffect(() => {
         const checkPageData = async () => {
             if (!hierarchy?.subject || !hierarchy?.level || !hierarchy?.set || !hierarchy?.page) {
@@ -228,8 +227,6 @@ const App: React.FC = () => {
                 const exists = !!(data && data.content_data);
                 setPageDataExists(exists);
 
-                // Step2 또는 Step3 뷰에서 카테고리 변경 시: DB 데이터 자동 로드하여 step2Data 갱신
-                // 단, Step1을 방금 완료한 경우(step1Completed)는 덮어쓰지 않음
                 if ((currentView === 'step2' || currentView === 'step3') && !step1Completed) {
                     if (exists) {
                         const contentData = data.content_data;
@@ -248,7 +245,6 @@ const App: React.FC = () => {
                         setStep2Data(session);
                         stateManager.setStep2Data(session);
                     } else {
-                        // 데이터 없는 페이지로 변경 시 → 빈 세션으로 갱신 (hierarchy만 갱신)
                         const emptySession: Step2Session = {
                             sessionId: `session-${Date.now()}`,
                             timestamp: new Date().toISOString(),
@@ -271,26 +267,18 @@ const App: React.FC = () => {
         checkPageData();
     }, [hierarchy?.subject, hierarchy?.level, hierarchy?.set, hierarchy?.page, currentView]);
 
-    // hierarchy를 전역에 동기화
     const handleHierarchyChange = useCallback((h: PageHierarchy) => {
         setHierarchy(h);
-        // [FIX] 계층이 변경되면 Step 1 신규 수집 데이터의 '최초 진입' 상태를 해제함
-        // 이를 통해 다른 페이지로 이동 시 DB 데이터를 정상적으로 불러올 수 있게 함
         setStep1Completed(false);
-
         if (h.subject && h.level && h.set && h.page) {
             stateManager.setHierarchy(h);
         }
     }, []);
 
-    // 카테고리 완전 선택 여부
     const isCategorySelected = !!(
         hierarchy?.subject && hierarchy?.level && hierarchy?.set && hierarchy?.page
     );
 
-    // ===== 스텝 네비게이션 규칙 =====
-    // 기존 완성 페이지: Step1, Step2 활성 → Step2 깜빡임
-    // 신규 페이지: Step1만 활성 → Step1 깜빡임 (Step1 완료 후 Step2 활성)
     const isStep1Enabled = isCategorySelected;
     const isStep2Enabled = isCategorySelected && (pageDataExists === true || step1Completed);
     const isStep3Enabled = isCategorySelected && pageDataExists === true;
@@ -299,11 +287,9 @@ const App: React.FC = () => {
         ? (pageDataExists === true ? 2 : 1)
         : null;
 
-    // ===== Step 핸들러 =====
     const handleStep1Complete = useCallback(async (data: Step1Output) => {
         const currentHierarchy = hierarchy || stateManager.getState().hierarchy;
 
-        // 기존 데이터가 있는 완성 페이지에서 Step1→Step2 시 경고
         if (currentHierarchy && pageDataExists) {
             try {
                 const { data: existingData } = await fetchPageContent(
@@ -325,7 +311,6 @@ const App: React.FC = () => {
         stateManager.setStep1Data(data);
         setStep1Completed(true);
 
-        // Step2 세션 생성
         if (currentHierarchy) {
             const newSession: Step2Session = {
                 sessionId: `session-${Date.now()}`,
@@ -352,20 +337,11 @@ const App: React.FC = () => {
         navigate('/step3');
     }, [navigate]);
 
-    // Step 2 업데이트 핸들러 (메모이제이션)
     const handleStep2Update = useCallback((data: Step2Session) => {
         setStep2Data(data);
         stateManager.setStep2Data(data);
     }, []);
 
-    /*
-    const handleStep3Complete = useCallback((data: Step3ActivityBundle) => {
-        setStep3Data(data);
-        stateManager.setStep3Data(data);
-    }, []);
-    */
-
-    // 스텝 카드 클릭
     const handleStepCardClick = useCallback(async (stepId: number) => {
         if (!isCategorySelected || !hierarchy) return;
 
@@ -380,7 +356,6 @@ const App: React.FC = () => {
             if (!isStep2Enabled) return;
 
             if (pageDataExists) {
-                // 기존 완성 페이지 → DB 데이터 로드
                 const { data } = await fetchPageContent(
                     hierarchy.subject, hierarchy.level, hierarchy.set, hierarchy.page
                 );
@@ -409,96 +384,110 @@ const App: React.FC = () => {
         }
     }, [isCategorySelected, hierarchy, isStep1Enabled, isStep2Enabled, isStep3Enabled, pageDataExists, navigate]);
 
-    // 뒤로가기 (스텝 → 홈) + 경고창
     const handleGoHome = useCallback(() => {
         if (currentView === 'step1' && step1Data) {
-            // Step1: 데이터가 있으면 경고
             if (!window.confirm('이동하시면 수집된 모든 데이터가 사라집니다.\n\n삭제후 이동하시겠습니까?')) {
-                return; // 취소
+                return;
             }
             setStep1Data(null);
         } else if (currentView === 'step2' && isStep2Dirty) {
-            // Step2: 미저장 상태면 경고
             if (!window.confirm('이동하시면 편집된 모든 데이터가 사라집니다.\n(저장을 원하시면 저장버튼 누르신후 이동하세요)\n\n삭제후 이동하시겠습니까?')) {
-                return; // 취소
+                return;
             }
             setIsStep2Dirty(false);
         }
         navigate('/');
     }, [currentView, step1Data, isStep2Dirty, navigate]);
 
-    // ===== 렌더링 =====
-    return (
-        <div className="min-h-screen flex flex-col relative overflow-x-hidden">
-            {/* 배경 장식 (Tiimo Style) */}
-            <div className="tiimo-bg-circle w-[400px] h-[400px] -top-20 -left-20" />
-            <div className="tiimo-bg-circle w-[300px] h-[300px] bottom-40 -right-20 !bg-[#FFB3A1]" />
+    const viewMeta = {
+        home:  { title: 'Metaon ICB',    sub: 'Instant Builder',  stepLabel: null },
+        step1: { title: "Let's collect", sub: 'Step 01 · Acquisition', stepLabel: '01' },
+        step2: { title: "Let's make",    sub: 'Step 02 · Refinement',  stepLabel: '02' },
+        step3: { title: "Let's play",    sub: 'Step 03 · Activity',    stepLabel: '03' },
+    };
+    const meta = viewMeta[currentView];
 
+    return (
+        <div className="min-h-screen flex flex-col" style={{ background: '#F8FAFF' }}>
             {!authState.isAuthenticated && <LoginOverlay />}
 
-            {/* 상단 헤더 */}
-            <header className="sticky top-0 z-50 px-4 py-4 backdrop-blur-3xl border-b border-[#E0D7FF]/30">
-                <div className="max-w-md mx-auto flex items-center justify-between">
-                    {/* 로고 / 뒤로가기 */}
-                    <div className="flex items-center gap-4">
+            {/* ── Header ── */}
+            <header className="sticky top-0 z-50 bg-white border-b border-slate-100"
+                style={{ boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.06)' }}>
+                <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+                    {/* Left: back / logo */}
+                    <div className="flex items-center gap-3">
                         {currentView !== 'home' ? (
                             <button
                                 onClick={handleGoHome}
-                                className="w-12 h-12 flex items-center justify-center text-[#9B87F5] bg-[#E0D7FF]/40 rounded-2xl hover:bg-[#E0D7FF]/60 transition-all active:scale-90"
+                                className="w-10 h-10 flex items-center justify-center text-slate-500 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all active:scale-90 cursor-pointer"
+                                aria-label="홈으로 돌아가기"
                             >
-                                <i className="fas fa-chevron-left text-xl"></i>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M15 18l-6-6 6-6"/>
+                                </svg>
                             </button>
                         ) : (
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#9B87F5] to-[#8170FF] flex items-center justify-center shadow-lg shadow-indigo-100 float-animation">
-                                <i className="fas fa-smile-beam text-white text-2xl"></i>
+                            <div className="w-10 h-10 rounded-xl step2-gradient flex items-center justify-center float-animation">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                    <path d="M2 17l10 5 10-5"/>
+                                    <path d="M2 12l10 5 10-5"/>
+                                </svg>
                             </div>
                         )}
                         <div>
-                            <h1 className="text-xl font-serif text-[#2D2D2D] tracking-tight leading-none">
-                                {currentView === 'home' ? 'Metaon ICB' :
-                                    currentView === 'step1' ? "Let's collect" :
-                                        currentView === 'step2' ? "Let's make" : "Let's play"}
+                            <h1 className="text-base font-bold text-slate-900 leading-none" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+                                {meta.title}
                             </h1>
-                            <p className="text-[11px] font-black text-[#9B87F5] uppercase tracking-[0.1em] mt-1">
-                                {currentView === 'home' ? 'Instant Builder' :
-                                    currentView === 'step1' ? 'Step 01' :
-                                        currentView === 'step2' ? 'Step 02' : 'Step 03'}
+                            <p className="text-[11px] font-semibold text-indigo-500 mt-0.5 leading-none">
+                                {meta.sub}
                             </p>
                         </div>
                     </div>
 
-                    {/* 우측 액션 */}
-                    <div className="flex items-center">
+                    {/* Right: actions */}
+                    <div className="flex items-center gap-2">
                         {currentView === 'step1' && step1Data && (
                             <button
                                 onClick={() => handleStep1Complete(step1Data)}
-                                className="px-6 py-2.5 rounded-full bg-[#E6FFFA] text-[#4FD1C5] font-black text-sm hover:bg-[#D4FFF5] transition-all shaodw-sm"
+                                className="btn btn-step3 btn-sm"
                             >
-                                Next →
+                                Next
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
                             </button>
                         )}
-                        <div id="step2-header-actions" className="flex items-center"></div>
+                        {currentView === 'home' && (
+                            <button
+                                onClick={() => setShowSettings(true)}
+                                className="w-10 h-10 flex items-center justify-center text-slate-400 rounded-xl hover:bg-slate-100 transition-all cursor-pointer"
+                                aria-label="설정"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                </svg>
+                            </button>
+                        )}
+                        <div id="step2-header-actions" className="flex items-center" />
                     </div>
                 </div>
             </header>
 
-            {/* 카테고리 바 (Tiimo 스타일로 정규화) */}
+            {/* ── Category Bar ── */}
             {authState.isAuthenticated && (
-                <div className="px-4 py-2">
-                    <div className="max-w-md mx-auto">
-                        <CategoryBar
-                            hierarchy={hierarchy}
-                            onHierarchyChange={handleHierarchyChange}
-                            classificationConfig={classificationConfig}
-                        />
-                    </div>
-                </div>
+                <CategoryBar
+                    hierarchy={hierarchy}
+                    onHierarchyChange={handleHierarchyChange}
+                    classificationConfig={classificationConfig}
+                />
             )}
 
-            {/* 메인 콘텐츠 */}
+            {/* ── Main ── */}
             <main className="flex-1 flex flex-col">
                 <Routes>
-                    {/* 홈 화면 */}
                     <Route path="/" element={
                         <HomeView
                             isCategorySelected={isCategorySelected}
@@ -509,11 +498,9 @@ const App: React.FC = () => {
                             isStep2Enabled={isStep2Enabled}
                             isStep3Enabled={isStep3Enabled}
                             onStepClick={handleStepCardClick}
-                            onSettingsClick={() => setShowSettings(true)}
                         />
                     } />
 
-                    {/* Step 1 */}
                     <Route path="/step1" element={
                         <Step1Acquisition
                             initialData={step1Data}
@@ -525,7 +512,6 @@ const App: React.FC = () => {
                         />
                     } />
 
-                    {/* Step 2 */}
                     <Route path="/step2" element={
                         <Step2Refinement
                             initialData={step1Completed ? step1Data : null}
@@ -538,7 +524,6 @@ const App: React.FC = () => {
                         />
                     } />
 
-                    {/* Step 3 */}
                     <Route path="/step3" element={
                         <Step3Runtime
                             sessionData={step2Data}
@@ -547,7 +532,7 @@ const App: React.FC = () => {
                 </Routes>
             </main>
 
-            {/* 설정 모달 */}
+            {/* ── Settings Modal ── */}
             {showSettings && (
                 <SettingsModal
                     engineModel={engineModel}
@@ -562,7 +547,7 @@ const App: React.FC = () => {
     );
 };
 
-// ===== 홈 화면 컴포넌트 =====
+// ===== 홈 화면 =====
 interface HomeViewProps {
     isCategorySelected: boolean;
     pageDataExists: boolean | null;
@@ -572,132 +557,170 @@ interface HomeViewProps {
     isStep2Enabled: boolean;
     isStep3Enabled: boolean;
     onStepClick: (id: number) => void;
-    onSettingsClick: () => void;
 }
 
 const HomeView: React.FC<HomeViewProps> = ({
     isCategorySelected, pageDataExists, checkingPage,
     recommendedStep,
     isStep1Enabled, isStep2Enabled, isStep3Enabled,
-    onStepClick, onSettingsClick
+    onStepClick
 }) => {
-    const stepCards = [
+    const steps = [
         {
-            id: 1, label: "Acquisition", labelKo: "Let's collect",
-            icon: 'fa-magic',
-            bg: '#FFEFE6',
-            color: '#FF9E85',
+            id: 1,
+            label: 'Acquisition',
+            labelKo: "Let's collect",
+            desc: 'OCR 또는 직접 입력으로 학습 데이터 수집',
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+            ),
+            gradient: 'step1-gradient',
+            shadowColor: 'rgba(249,115,22,0.25)',
+            lightBg: '#FFF7ED',
+            textColor: '#EA580C',
             enabled: isStep1Enabled,
             recommended: recommendedStep === 1
         },
         {
-            id: 2, label: "Refinement", labelKo: "Let's make",
-            icon: 'fa-wand-magic-sparkles',
-            bg: '#E0D7FF',
-            color: '#9B87F5',
+            id: 2,
+            label: 'Refinement',
+            labelKo: "Let's make",
+            desc: 'AI로 이미지·음성 추가 및 액티비티 구성',
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+            ),
+            gradient: 'step2-gradient',
+            shadowColor: 'rgba(99,102,241,0.25)',
+            lightBg: '#EEF2FF',
+            textColor: '#4F46E5',
             enabled: isStep2Enabled,
             recommended: recommendedStep === 2
         },
         {
-            id: 3, label: "Activity", labelKo: "Let's play",
-            icon: 'fa-gamepad',
-            bg: '#E6FFFA',
-            color: '#4FD1C5',
+            id: 3,
+            label: 'Activity',
+            labelKo: "Let's play",
+            desc: '퀴즈·매칭·플래시카드 등 9가지 액티비티',
+            icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+            ),
+            gradient: 'step3-gradient',
+            shadowColor: 'rgba(20,184,166,0.25)',
+            lightBg: '#F0FDFA',
+            textColor: '#0D9488',
             enabled: isStep3Enabled,
             recommended: false
         }
     ];
 
     return (
-        <div className="flex-1 px-5 py-8 animate-fade-in flex flex-col gap-8">
-            {/* 현재 상태 인디케이터 (Subtle Status) */}
-            <div className="flex items-center gap-3">
-                <div className={cn(
-                    "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-                    isCategorySelected ? "bg-[#E6FFFA] text-[#4FD1C5]" : "bg-amber-50 text-amber-500 animate-pulse"
+        <div className="flex-1 max-w-md mx-auto w-full px-4 py-6 animate-fade-up">
+
+            {/* Status Pills */}
+            <div className="flex items-center gap-2 mb-6">
+                <span className={cn(
+                    'badge',
+                    isCategorySelected ? 'badge-step3' : 'badge-warning'
                 )}>
-                    {isCategorySelected ? "Category Selected" : "Select Category"}
-                </div>
+                    {isCategorySelected ? (
+                        <>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="10"/>
+                            </svg>
+                            카테고리 선택됨
+                        </>
+                    ) : '카테고리를 선택하세요'}
+                </span>
+
                 {isCategorySelected && (
-                    <div className={cn(
-                        "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
-                        pageDataExists ? "bg-[#E0D7FF] text-[#9B87F5]" : "bg-slate-50 text-slate-400"
-                    )}>
-                        {pageDataExists ? "Data Exists" : "New Page"}
-                    </div>
+                    <span className={cn('badge', pageDataExists ? 'badge-primary' : 'badge-neutral')}>
+                        {pageDataExists === null ? '확인 중...' : pageDataExists ? '데이터 있음' : '신규 페이지'}
+                    </span>
                 )}
             </div>
 
-            {/* 환영 인사 */}
-            <div className="pt-4">
-                <h2 className="text-3xl font-serif text-[#2D2D2D] leading-[1.2]">
-                    Ready to create<br />
-                    <span className="text-[#9B87F5]">magic content?</span>
+            {/* Hero Text */}
+            <div className="mb-8">
+                <h2 className="text-2xl font-bold text-slate-900 leading-tight" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+                    콘텐츠를 즉석에서<br />
+                    <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}>
+                        만들어보세요
+                    </span>
                 </h2>
-                <p className="text-slate-400 mt-2 font-bold text-sm">기획부터 액티비티까지 즉석에서!</p>
+                <p className="text-slate-500 text-sm mt-1.5">기획부터 액티비티까지 3단계로 완성</p>
             </div>
 
-            {/* 단계별 카드 그리드 */}
-            <div className="flex flex-col gap-5">
-                {stepCards.map((step) => (
+            {/* Step Cards */}
+            <div className="space-y-3">
+                {steps.map((step) => (
                     <button
                         key={step.id}
                         onClick={() => onStepClick(step.id)}
                         disabled={!step.enabled}
                         className={cn(
-                            "group relative card !p-0 overflow-hidden flex flex-col transition-all duration-500",
-                            !step.enabled && "opacity-40 grayscale pointer-events-none",
-                            step.recommended && "ring-4 ring-[#9B87F5]/20"
+                            'w-full text-left transition-all duration-200',
+                            !step.enabled && 'opacity-40 pointer-events-none'
                         )}
                     >
-                        <div className="flex items-center p-6 gap-5">
-                            {/* 아이콘 영역 */}
+                        <div className={cn(
+                            'card-hover p-4 flex items-center gap-4',
+                            step.recommended && 'ring-2 ring-indigo-200'
+                        )}>
+                            {/* Step Icon */}
                             <div
-                                className="w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-transform group-hover:scale-110 group-active:scale-95 shadow-sm"
-                                style={{ backgroundColor: step.bg, color: step.color }}
+                                className={cn('flex items-center justify-center rounded-2xl shrink-0', step.gradient)}
+                                style={{ width: 52, height: 52, boxShadow: `0 4px 14px ${step.shadowColor}` }}
                             >
-                                <i className={cn("fas text-2xl", step.icon)}></i>
+                                {step.icon}
                             </div>
 
-                            {/* 텍스트 영역 */}
-                            <div className="text-left">
-                                <h3 className="text-xl font-serif text-[#2D2D2D] group-hover:text-[#9B87F5] transition-colors">
-                                    {step.labelKo}
-                                </h3>
-                                <p className="text-xs font-black tracking-widest uppercase opacity-40 mt-1">
-                                    {step.label}
-                                </p>
+                            {/* Text */}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: step.textColor }}>
+                                        Step {String(step.id).padStart(2, '0')}
+                                    </p>
+                                    {step.recommended && (
+                                        <span className="badge badge-primary text-[10px]">추천</span>
+                                    )}
+                                    {step.id === 2 && pageDataExists && (
+                                        <span className="badge badge-success text-[10px]">저장됨</span>
+                                    )}
+                                </div>
+                                <p className="font-bold text-slate-900 text-base leading-tight">{step.labelKo}</p>
+                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{step.desc}</p>
                             </div>
 
-                            {/* 화살표 가이드 */}
-                            <div className="ml-auto w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-[#9B87F5] group-hover:bg-white transition-all">
-                                <i className="fas fa-chevron-right"></i>
+                            {/* Arrow */}
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-50 text-slate-400 shrink-0">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M9 18l6-6-6-6"/>
+                                </svg>
                             </div>
                         </div>
 
-                        {/* 하단 미세 데코선 */}
+                        {/* Recommended bar */}
                         {step.recommended && (
-                            <div className="h-1 w-full bg-[#9B87F5] animate-shimmer" />
+                            <div className={cn('h-0.5 rounded-b-2xl', step.gradient)} style={{ marginTop: -1 }} />
                         )}
                     </button>
                 ))}
             </div>
 
-            {/* 하단 설정 안내 */}
-            <button
-                onClick={onSettingsClick}
-                className="mt-4 flex items-center justify-center gap-3 p-5 rounded-[2rem] bg-slate-50/50 border border-slate-100 text-slate-400 hover:text-[#9B87F5] transition-all font-bold text-sm"
-            >
-                <i className="fas fa-cog"></i>
-                환경 설정 및 API 키 관리
-            </button>
-
-            {/* 로딩 표시 */}
+            {/* Checking overlay */}
             {checkingPage && (
-                <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-50 flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="w-12 h-12 border-4 border-[#E0D7FF] border-t-[#9B87F5] rounded-full animate-spin"></div>
-                        <p className="font-serif text-[#9B87F5] font-bold">Checking magic...</p>
+                <div className="fixed inset-0 bg-white/70 backdrop-blur-sm z-50 flex items-center justify-center">
+                    <div className="bg-white rounded-2xl px-6 py-5 flex items-center gap-4 shadow-card-lg">
+                        <div className="spinner" />
+                        <p className="font-semibold text-slate-700 text-sm">데이터 확인 중...</p>
                     </div>
                 </div>
             )}
@@ -719,83 +742,101 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     engineModel, setEngineModel, geminiApiKey, setGeminiApiKey, totalCost, onClose
 }) => {
     const models = [
-        'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'
+        { id: 'gemini-2.5-pro', label: 'Pro', desc: '최고 품질, 고비용' },
+        { id: 'gemini-2.5-flash', label: 'Flash', desc: '균형 잡힌 속도/품질' },
+        { id: 'gemini-2.5-flash-lite', label: 'Flash Lite', desc: '빠르고 저렴' },
     ];
 
     return (
-        <div className="fixed inset-0 z-[100] bg-[#2D2D2D]/60 backdrop-blur-sm flex items-end justify-center px-4" onClick={onClose}>
+        <div
+            className="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-4"
+            style={{ background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(6px)' }}
+            onClick={onClose}
+        >
             <div
-                className="w-full max-w-lg bg-white rounded-[3rem] shadow-2xl max-h-[85vh] flex flex-col animate-slide-up mb-8"
+                className="w-full max-w-lg bg-white rounded-2xl shadow-card-lg max-h-[85vh] flex flex-col animate-slide-up overflow-hidden"
+                style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.18)' }}
                 onClick={e => e.stopPropagation()}
             >
-                {/* 헤더 */}
-                <div className="px-8 pt-8 pb-4 flex items-center justify-between">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
                     <div>
-                        <h3 className="text-2xl font-serif text-[#2D2D2D]">Settings</h3>
-                        <p className="text-xs font-black text-[#9B87F5] uppercase tracking-widest mt-1">Config & Usage</p>
+                        <h3 className="font-bold text-slate-900 text-lg" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>환경 설정</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">API 키 및 AI 엔진 설정</p>
                     </div>
-                    <button onClick={onClose} className="w-12 h-12 rounded-full bg-[#E0D7FF]/40 text-[#9B87F5] flex items-center justify-center hover:bg-[#E0D7FF]/60 transition-all">
-                        <i className="fas fa-times text-lg"></i>
+                    <button
+                        onClick={onClose}
+                        className="w-9 h-9 flex items-center justify-center text-slate-400 rounded-xl hover:bg-slate-100 transition-all cursor-pointer"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
                     </button>
                 </div>
 
-                <div className="px-8 pb-10 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
-                    {/* 비용 요약 카드 */}
-                    <div className="bg-[#E6FFFA] rounded-[2rem] p-6 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm text-[#4FD1C5]">
-                                <i className="fas fa-coins text-2xl"></i>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black text-[#4FD1C5] uppercase tracking-wider">Session Usage</p>
-                                <p className="text-base font-bold text-[#2D2D2D]">현재 세션 비용</p>
-                            </div>
+                <div className="px-6 py-5 space-y-6 overflow-y-auto flex-1">
+                    {/* Usage Card */}
+                    <div className="flex items-center gap-4 p-4 bg-step3-50 rounded-xl border border-step3-100">
+                        <div className="w-10 h-10 step3-gradient rounded-xl flex items-center justify-center">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="1" x2="12" y2="23"/>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
                         </div>
-                        <p className="text-2xl font-serif text-[#2D2D2D]">${totalCost.toFixed(5)}</p>
+                        <div className="flex-1">
+                            <p className="text-xs font-bold text-step3-600 uppercase tracking-wide">세션 비용</p>
+                            <p className="text-xl font-bold text-slate-900">${totalCost.toFixed(5)}</p>
+                        </div>
                     </div>
 
-                    {/* API Key 입력 */}
+                    {/* API Key */}
                     <div>
-                        <label className="flex items-center gap-2 text-sm font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">
-                            <i className="fas fa-key text-[10px]"></i>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                             Gemini API Key
                         </label>
                         <input
                             type="password"
                             value={geminiApiKey}
                             onChange={e => setGeminiApiKey(e.target.value)}
-                            placeholder="Entrez votre API key..."
+                            placeholder="API 키를 입력하세요..."
                             className="input-field"
                         />
                     </div>
 
-                    {/* 엔진 모델 선택 */}
+                    {/* Model Selection */}
                     <div>
-                        <label className="flex items-center gap-2 text-sm font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">
-                            <i className="fas fa-brain text-[10px]"></i>
-                            AI Engine Model
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                            AI 엔진 모델
                         </label>
-                        <div className="grid grid-cols-1 gap-3">
+                        <div className="space-y-2">
                             {models.map(model => (
                                 <button
-                                    key={model}
-                                    onClick={() => setEngineModel(model)}
+                                    key={model.id}
+                                    onClick={() => setEngineModel(model.id)}
                                     className={cn(
-                                        "flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all duration-300",
-                                        engineModel === model
-                                            ? "bg-[#E0D7FF]/30 border-[#9B87F5] ring-4 ring-[#9B87F5]/5"
-                                            : "bg-white border-slate-50 hover:border-[#E0D7FF]"
+                                        'w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-150 cursor-pointer',
+                                        engineModel === model.id
+                                            ? 'border-indigo-400 bg-indigo-50'
+                                            : 'border-slate-100 bg-white hover:border-slate-200'
                                     )}
                                 >
-                                    <span className={cn(
-                                        "font-bold text-sm",
-                                        engineModel === model ? "text-[#9B87F5]" : "text-slate-500"
-                                    )}>{model}</span>
-                                    {engineModel === model && (
-                                        <div className="w-6 h-6 rounded-full bg-[#9B87F5] flex items-center justify-center text-white text-[10px]">
-                                            <i className="fas fa-check"></i>
-                                        </div>
-                                    )}
+                                    <div className="text-left">
+                                        <p className={cn('font-bold text-sm', engineModel === model.id ? 'text-indigo-700' : 'text-slate-700')}>
+                                            {model.label}
+                                        </p>
+                                        <p className="text-xs text-slate-400 mt-0.5">{model.id}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-slate-400">{model.desc}</span>
+                                        {engineModel === model.id && (
+                                            <div className="w-5 h-5 step2-gradient rounded-full flex items-center justify-center">
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="20 6 9 17 4 12"/>
+                                                </svg>
+                                            </div>
+                                        )}
+                                    </div>
                                 </button>
                             ))}
                         </div>

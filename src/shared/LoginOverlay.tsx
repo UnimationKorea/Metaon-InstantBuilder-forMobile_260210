@@ -9,7 +9,6 @@ export const LoginOverlay: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // metaon01~30 유효성 검사
     const isValidUserId = (id: string) => {
         const regex = /^metaon(0[1-9]|[12][0-9]|30)$/;
         return regex.test(id.toLowerCase());
@@ -31,7 +30,6 @@ export const LoginOverlay: React.FC = () => {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-        // ... (rest of the login logic)
 
         const normalizedId = userId.trim().toLowerCase();
         if (!isValidUserId(normalizedId)) {
@@ -42,16 +40,13 @@ export const LoginOverlay: React.FC = () => {
         setIsLoading(true);
 
         try {
-            // DB에서 사용자 정보 조회
             const { data, error: dbError } = await supabase
                 .from('edu_page_data')
                 .select('user_id, password, app_state, hierarchy, classification_config')
                 .eq('user_id', normalizedId)
                 .single();
 
-            // 에러 코드 406은 행을 찾을 수 없는 경우 (PGRST116)
             if (dbError && dbError.code === 'PGRST116') {
-                // 사용자가 존재하지 않음 -> 초기 비밀번호 3212로 자동 생성 시도
                 if (password === '3212') {
                     const { error: insertError } = await supabase
                         .from('edu_page_data')
@@ -72,14 +67,11 @@ export const LoginOverlay: React.FC = () => {
             } else if (dbError) {
                 throw dbError;
             } else if (data) {
-                // 사용자가 존재함 -> 비밀번호 확인
                 if (data.password === password) {
-                    // app_state가 있고 내용이 있으면 선택권 제공
                     if (data.app_state && Object.keys(data.app_state).length > 0) {
                         setPendingData(data);
                         setShowChoice(true);
                     } else {
-                        // 기존 데이터 없으면 즉시 로그인
                         completeLogin(data, false);
                     }
                 } else {
@@ -108,160 +100,219 @@ export const LoginOverlay: React.FC = () => {
     };
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-3 sm:p-4 overflow-y-auto">
-            <div className="w-full max-w-[400px] bg-white/90 backdrop-blur-xl border border-white/40 rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-8 animate-fade-in my-auto">
-                <div className="text-center mb-5 sm:mb-8">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl sm:rounded-2xl flex items-center justify-center text-white text-lg sm:text-2xl mx-auto mb-3 sm:mb-4 shadow-xl shadow-indigo-200">
-                        <i className="fas fa-lock"></i>
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-1 sm:mb-2">Metaon ICB 로그인</h2>
-                    <p className="text-slate-500 text-xs sm:text-sm font-medium">교사 전용 메타온 콘텐츠 빌더 서비스</p>
-                </div>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto"
+            style={{ background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(8px)' }}>
 
-                <form onSubmit={handleLogin} className="space-y-5">
-                    <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 px-1">사용자 ID (metaon01~30)</label>
+            {/* Login Card */}
+            <div className="w-full max-w-md mx-4 my-8 animate-fade-up">
+                <div className="bg-white rounded-2xl shadow-card-lg overflow-hidden"
+                    style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.18)' }}>
+
+                    {/* Top Brand Bar */}
+                    <div className="step2-gradient px-8 pt-8 pb-10 relative overflow-hidden">
+                        {/* Decorative circles */}
+                        <div className="absolute -top-6 -right-6 w-28 h-28 bg-white/10 rounded-full" />
+                        <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-white/10 rounded-full" />
+
                         <div className="relative">
-                            <input
-                                type="text"
-                                value={userId}
-                                onChange={(e) => setUserId(e.target.value)}
-                                placeholder="metaon01"
-                                required
-                                className="w-full bg-slate-50 border border-slate-100 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 outline-none transition-all font-bold text-slate-800"
-                            />
-                            <div className="absolute right-4 top-3.5 text-slate-300">
-                                <i className="fas fa-user text-sm"></i>
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                        <path d="M2 17l10 5 10-5"/>
+                                        <path d="M2 12l10 5 10-5"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p className="text-white/70 text-xs font-semibold tracking-wider uppercase">Metaon</p>
+                                    <p className="text-white font-bold text-sm leading-tight">Instant Content Builder</p>
+                                </div>
                             </div>
+                            <h1 className="text-white font-bold text-2xl leading-tight">
+                                교사 전용 로그인
+                            </h1>
+                            <p className="text-white/70 text-sm mt-1">AI 기반 학습 콘텐츠 제작 시스템</p>
                         </div>
                     </div>
 
-                    <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 px-1">비밀번호</label>
-                        <div className="relative">
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••"
-                                required
-                                className="w-full bg-slate-50 border border-slate-100 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 outline-none transition-all font-mono"
-                            />
-                            <div className="absolute right-4 top-3.5 text-slate-300">
-                                <i className="fas fa-key text-sm"></i>
+                    {/* Form */}
+                    <form onSubmit={handleLogin} className="px-8 py-7 space-y-5">
+
+                        {/* User ID */}
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                사용자 ID
+                            </label>
+                            <div className="relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="12" cy="7" r="4"/>
+                                    </svg>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={userId}
+                                    onChange={(e) => setUserId(e.target.value)}
+                                    placeholder="metaon01"
+                                    required
+                                    className="input-field pl-11"
+                                />
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1.5 pl-1">metaon01 ~ metaon30</p>
+                        </div>
+
+                        {/* Password */}
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                비밀번호
+                            </label>
+                            <div className="relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                    </svg>
+                                </div>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••"
+                                    required
+                                    className="input-field pl-11 font-mono tracking-widest"
+                                />
                             </div>
                         </div>
-                    </div>
 
-                    {error && (
-                        <p className="text-rose-500 text-xs font-bold px-1 animate-shake bg-rose-50 rounded-xl py-2 px-3 border border-rose-100">
-                            <i className="fas fa-exclamation-circle mr-1"></i>
-                            {error}
-                        </p>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className={cn(
-                            "w-full min-h-[48px] py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-sm shadow-xl shadow-indigo-100 hover:shadow-indigo-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-3 sm:mt-4",
-                            isLoading && "opacity-50 pointer-events-none"
+                        {/* Error */}
+                        {error && (
+                            <div className="flex items-start gap-2.5 p-3.5 bg-red-50 border border-red-100 rounded-xl animate-fade-in">
+                                <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="8" x2="12" y2="12"/>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                                <p className="text-red-600 text-sm font-medium">{error}</p>
+                            </div>
                         )}
-                    >
-                        {isLoading ? (
-                            <>
-                                <i className="fas fa-spinner fa-spin"></i>
-                                처리 중...
-                            </>
-                        ) : (
-                            <>
-                                로그인
-                                <i className="fas fa-arrow-right text-xs"></i>
-                            </>
-                        )}
-                    </button>
 
-                    <div className="mt-6 pt-4 border-t border-slate-100">
+                        {/* Submit */}
                         <button
-                            type="button"
-                            onClick={() => setShowConfig(!showConfig)}
-                            className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-500 transition-colors mx-auto block mb-2"
+                            type="submit"
+                            disabled={isLoading}
+                            className={cn('btn btn-primary w-full btn-lg', isLoading && 'opacity-60 pointer-events-none')}
                         >
-                            {showConfig ? '기본 로그인으로 돌아가기' : 'Supabase 수동 설정 (비상용)'}
+                            {isLoading ? (
+                                <>
+                                    <span className="spinner-sm" style={{ borderTopColor: 'white' }} />
+                                    로그인 중...
+                                </>
+                            ) : (
+                                <>
+                                    로그인
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                                    </svg>
+                                </>
+                            )}
                         </button>
 
-                        {showConfig && (
-                            <div className="space-y-4 animate-slide-up bg-slate-50/50 p-4 rounded-2xl border border-slate-100 mt-2">
-                                <div>
-                                    <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Supabase URL</label>
-                                    <input
-                                        type="text"
-                                        value={manualUrl}
-                                        onChange={(e) => setManualUrl(e.target.value)}
-                                        placeholder="https://xxx.supabase.co"
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-[11px] focus:ring-2 focus:ring-indigo-100 outline-none"
-                                    />
+                        {/* Hint */}
+                        <p className="text-center text-xs text-slate-400">
+                            초기 비밀번호: <span className="font-bold text-slate-600">3212</span>
+                        </p>
+
+                        {/* Supabase Config Toggle */}
+                        <div className="pt-2 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => setShowConfig(!showConfig)}
+                                className="text-xs text-slate-400 hover:text-indigo-500 transition-colors font-medium mx-auto block"
+                            >
+                                {showConfig ? '닫기' : 'Supabase 수동 설정'}
+                            </button>
+
+                            {showConfig && (
+                                <div className="mt-4 space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-fade-up">
+                                    <div>
+                                        <label className="text-xs font-semibold text-slate-500 block mb-1">Supabase URL</label>
+                                        <input
+                                            type="text"
+                                            value={manualUrl}
+                                            onChange={(e) => setManualUrl(e.target.value)}
+                                            placeholder="https://xxx.supabase.co"
+                                            className="input-field text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-slate-500 block mb-1">Anon Key</label>
+                                        <input
+                                            type="password"
+                                            value={manualKey}
+                                            onChange={(e) => setManualKey(e.target.value)}
+                                            placeholder="eyJhbGci..."
+                                            className="input-field text-sm"
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleConfigSave}
+                                        className="btn btn-secondary w-full btn-sm"
+                                    >
+                                        설정 적용
+                                    </button>
                                 </div>
-                                <div>
-                                    <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Anon Key</label>
-                                    <input
-                                        type="password"
-                                        value={manualKey}
-                                        onChange={(e) => setManualKey(e.target.value)}
-                                        placeholder="eyJhbGci..."
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-[11px] focus:ring-2 focus:ring-indigo-100 outline-none"
-                                    />
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={handleConfigSave}
-                                    className="w-full py-2 bg-slate-800 text-white text-[10px] font-black rounded-xl hover:bg-slate-700 transition-colors"
-                                >
-                                    설정 적용
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    </form>
+                </div>
+            </div>
 
-                    <p className="text-[10px] text-center text-slate-400 mt-4 leading-relaxed">
-                        초기 비밀번호는 <strong>3212</strong>입니다.<br />
-                        로그인 후 설정 메뉴에서 변경하실 수 있습니다.
-                    </p>
-                </form>
+            {/* Session Choice Modal */}
+            {showChoice && (
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+                    style={{ background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)' }}>
+                    <div className="w-full max-w-sm bg-white rounded-2xl shadow-card-lg p-6 animate-scale-in"
+                        style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)' }}>
 
-                {/* 이어서 하기 / 새로 시작 선택 모달 */}
-                {showChoice && (
-                    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-6">
-                        <div className="w-full max-w-[360px] bg-white rounded-3xl shadow-2xl p-8 animate-slide-up border border-slate-100">
-                            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4">
-                                <i className="fas fa-history"></i>
-                            </div>
-                            <h3 className="text-xl font-black text-slate-900 text-center mb-2">기존 작업 발견</h3>
-                            <p className="text-slate-500 text-sm text-center mb-8 leading-relaxed">
-                                이전에 작업하던 데이터가 있습니다.<br />
-                                <strong>이어서 진행</strong>하시겠습니까?
-                            </p>
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                            style={{ background: 'linear-gradient(135deg, #F97316, #FB923C)' }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="1 4 1 10 7 10"/>
+                                <path d="M3.51 15a9 9 0 1 0 .49-3.68"/>
+                            </svg>
+                        </div>
 
-                            <div className="space-y-3">
-                                <button
-                                    onClick={() => completeLogin(pendingData, true)}
-                                    className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
-                                >
-                                    <i className="fas fa-play"></i>
-                                    작업 이어서 하기
-                                </button>
-                                <button
-                                    onClick={() => completeLogin(pendingData, false)}
-                                    className="w-full py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <i className="fas fa-redo"></i>
-                                    처음부터 새로 시작
-                                </button>
-                            </div>
+                        <h3 className="text-xl font-bold text-slate-900 text-center mb-1">기존 작업 발견</h3>
+                        <p className="text-slate-500 text-sm text-center mb-6 leading-relaxed">
+                            이전에 작업하던 데이터가 있습니다.
+                        </p>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => completeLogin(pendingData, true)}
+                                className="btn btn-primary w-full"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="5 3 19 12 5 21 5 3"/>
+                                </svg>
+                                작업 이어서 하기
+                            </button>
+                            <button
+                                onClick={() => completeLogin(pendingData, false)}
+                                className="btn btn-secondary w-full"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="1 4 1 10 7 10"/>
+                                    <path d="M3.51 15a9 9 0 1 0 .49-3.68"/>
+                                </svg>
+                                처음부터 새로 시작
+                            </button>
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 };
